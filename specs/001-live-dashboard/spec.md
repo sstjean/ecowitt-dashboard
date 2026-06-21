@@ -185,17 +185,19 @@ signal and a prominent panel on the reference console, but the screen is still
 useful without it (P1 covers the headline conditions).
 
 **Independent Test**: Provide a reading with wind speed, direction (degrees),
-gust, 10-minute average, and max daily gust, and confirm the compass gauge shows
-the current speed in mph, the cardinal direction plus bearing in degrees, the
-current gust, the 10-minute average, and the max daily gust (direction + speed).
+gust, 10-minute average (speed + direction), and max daily gust, and confirm the
+compass gauge shows the current speed in mph, the cardinal direction plus bearing
+in degrees, the current gust, the 10-minute average (speed plus its cardinal
+direction), and the max daily gust (direction + speed).
 
 **Acceptance Scenarios**:
 
 1. **Given** a reading with wind from 45° at 8 mph gusting 14 mph, **When** the
    wind panel renders, **Then** it shows 8 mph, the cardinal direction "NE" with
    the bearing "45°", and a current gust of 14 mph.
-2. **Given** a reading with a 10-minute average wind of 6 mph, **When** the wind
-   panel renders, **Then** it displays the 10-Minute Average as 6 mph.
+2. **Given** a reading with a 10-minute average wind of 6 mph from 121°, **When**
+   the wind panel renders, **Then** it displays the 10-Minute Average as 6 mph
+   paired with its cardinal direction "ESE" (FR-017a).
 3. **Given** the day's max gust was 22 mph from the west, **When** the wind panel
    renders, **Then** it displays a Max Daily Gust of 22 mph from "W".
 4. **Given** the wind direction is due north, **When** the compass renders,
@@ -212,8 +214,10 @@ seeing an at-a-glance droplet that fills with the day's rainfall.
 especially in wet seasons, but is not part of the headline P1 conditions.
 
 **Independent Test**: Provide a reading with daily, event, hourly, weekly,
-monthly, and yearly rain totals and confirm the droplet fills proportionally to
-the daily total and all six totals are shown in inches.
+monthly, and yearly rain totals, a current rain rate, and the raining-now flag
+set, and confirm the droplet fills proportionally to the daily total, all six
+totals are shown in inches, the current rain rate is shown in in/hr, and the
+"raining now" indicator is visible.
 
 **Acceptance Scenarios**:
 
@@ -230,6 +234,12 @@ the daily total and all six totals are shown in inches.
 5. **Given** a reading with event, hourly, weekly, monthly, and yearly rain
    values, **When** the rainfall panel renders, **Then** all five totals plus the
    Daily total are displayed in inches with the Daily total most prominent.
+6. **Given** a reading with a current rain rate of 0.04 in/hr, **When** the
+   rainfall panel renders, **Then** it displays the current rain rate as
+   0.04 in/hr (FR-029a).
+7. **Given** a reading with the piezo raining-now flag set, **When** the rainfall
+   panel renders, **Then** a "raining now" indicator is shown; **And** when the
+   flag is clear the indicator is hidden (FR-029b).
 
 ---
 
@@ -792,10 +802,11 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
 
 - **Live Reading Snapshot**: The most recent set of current weather values to
   display, including outdoor temperature, feels-like, dewpoint, outdoor humidity,
-  wind speed/direction/gust, 10-minute average wind, max daily gust (direction +
-  speed), solar radiation, UV index, indoor temperature, indoor humidity, rainfall
-  totals (event/hourly/daily/weekly/monthly/yearly), absolute barometric pressure,
-  and the observation time of the reading.
+  wind speed/direction/gust, 10-minute average wind (speed + direction), max daily
+  gust (direction + speed), solar radiation, UV index, indoor temperature, indoor
+  humidity, rainfall totals (event/hourly/daily/weekly/monthly/yearly), current
+  rain rate (in/hr), a raining-now indicator, absolute barometric pressure, and
+  the observation time of the reading.
 - **Daily Extremes**: The day's high and low outdoor temperature and the max daily
   gust direction, **derived by the application from its own stored history** since
   local midnight; the gateway supplies the max daily gust speed as-is. Used by the

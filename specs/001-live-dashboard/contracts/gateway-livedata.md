@@ -51,7 +51,9 @@ Categories observed on this device and how they map to the snapshot:
 | `debug` | heap, runtime, usr_interval, is_cnip | captured into `FullMetricMap` only |
 
 ¹ Observed but not vendor-documented; `common_list` `"3"` and `0x6D` are mapped on
-best-evidence and **confirmed at implementation** against a fresh capture.
+best-evidence and **confirmed at implementation** against a fresh capture. `0x6D`
+is now **projected** to `windAvg10mDirDeg` (FR-017a) and gates the 10-min average
+wind-direction readout, so confirming it at implementation is load-bearing.
 
 > **⚠ Rain comes from `piezoRain`, NEVER the `rain` tipping bucket — this is the
 > reason the project exists.** In the device-verified capture taken *during an active
