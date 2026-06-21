@@ -64,6 +64,26 @@ Requirements in this spec that touch visual encoding (e.g., the temperature colo
 scale, the rainfall droplet, data-state dimming) cite the relevant design-language
 section so the two stay traceable without copying detail.
 
+## Clarifications
+
+### Session 2026-06-21
+
+- Q: Default cadences for the client UI refresh and the ingestion poll? → A:
+  Ingestion poll defaults to 30 s (configurable, 30–60 s range); the client UI
+  refresh defaults to 10 s. The two are distinct loops and are not conflated.
+- Q: When does a panel become Stale? → A: When the latest reading's observation
+  time is older than three times (3×) the ingestion poll cadence.
+- Q: How is the sky-condition icon derived (so US6 is objectively testable)? → A:
+  Deterministic ordered rules — Night (before sunrise / after sunset) → Rainy
+  (hourly rain rate > 0) → Clear (daytime, no rain, solar ≥ 500 W/m²) → Cloudy
+  (daytime, no rain, solar < 500 W/m²).
+- Q: Source of day high/low temperature, 10-minute average wind, and max daily
+  gust? → A: Taken from the gateway's daily-aggregate fields as-is; the application
+  does not recompute them from stored history for this feature.
+- Q: What does the barometer show before 3 hours of history exist? → A: An explicit
+  "trend unavailable" state (neutral, no arrow, no delta), never a fabricated steady
+  or zero-delta trend.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Glanceable outdoor "now" at a glance (Priority: P1)
@@ -258,8 +278,9 @@ the condition icon reflects it.
    panel renders, **Then** it shows a falling indicator (↓) and the delta.
 4. **Given** pressure is essentially unchanged over the trend window, **When** the
    barometer panel renders, **Then** it shows a steady indicator.
-5. **Given** the present conditions indicate clear skies, **When** the dashboard
-   renders, **Then** the current-condition icon reflects a sunny/clear state.
+5. **Given** a daytime reading with no active rainfall and solar radiation of
+   540 W/m² (at or above the 500 W/m² clear-sky threshold), **When** the dashboard
+   renders, **Then** the current-condition icon shows the clear/sunny state.
 
 ---
 
@@ -385,6 +406,10 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
 - **Rainfall over capacity**: A daily rain total exceeding the 4.0 in full-scale
   cap MUST clamp the droplet at full and escalate its color (blue → amber → red)
   while still showing the true numeric total.
+- **Barometer trend before 3h of history**: When fewer than 3 hours of stored
+  readings exist (fresh install or early run), the barometer panel MUST show the
+  current pressure with an explicit "trend unavailable" indicator (neutral, no
+  arrow, no delta) rather than fabricating a steady trend or a zero delta.
 - **Temperature on the color scale**: The temperature→color mapping is a smooth
   visible-spectrum interpolation, so any temperature MUST resolve to a single,
   deterministic color with no abrupt banding or flicker between adjacent hues.
@@ -502,6 +527,12 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
 - **FR-018a**: The wind direction MUST be shown on a compass-style gauge using a
   **rim marker** rotated to the bearing (not a full-diameter needle), positioned so
   it never overlaps the center readout.
+- **FR-018b**: The day's high/low outdoor temperature (FR-010), the 10-minute
+  average wind (FR-017), and the maximum daily gust (FR-018) MUST be taken from the
+  gateway's corresponding daily-aggregate / averaged fields as supplied in each
+  reading (the gateway resets its daily aggregates at local midnight). The
+  application MUST NOT recompute these from stored history for this feature; it
+  surfaces the gateway-provided values as-is.
 
 #### Solar & Sky
 
@@ -551,19 +582,40 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
 - **FR-032**: The barometer panel MUST display a **3-hour** trend indicator
   (rising ↗ / steady → / falling ↘ arrow) together with the delta of change over
   that window, never relying on color alone.
-- **FR-033**: The barometer panel MUST carry the sky-condition icon (e.g.,
-  sun / cloud / rain) reflecting present conditions.
+- **FR-032a**: When fewer than 3 hours of readings are available to compute the
+  trend window (FR-032), the system MUST represent the trend as explicitly
+  **unavailable** (neutral indicator, no arrow, no delta) rather than reporting a
+  steady or zero-delta trend, and the UI MUST render that "trend unavailable" state.
+- **FR-033**: The barometer panel MUST carry a sky-condition icon derived
+  deterministically from the latest reading (no external forecast service), using
+  these ordered rules:
+  - **Night** (moon icon): the current Eastern time is before sunrise or after
+    sunset.
+  - **Rainy** (rain icon): it is daytime and the hourly rain rate is greater than 0.
+  - **Clear** (sun icon): it is daytime, not raining, and solar radiation is at or
+    above the configured clear-sky threshold (default **500 W/m²**).
+  - **Cloudy** (cloud icon): it is daytime, not raining, and solar radiation is
+    below the clear-sky threshold.
+
+  The mapping MUST be a pure function of the snapshot so the same reading always
+  yields the same icon; the clear-sky threshold is configurable.
 
 #### Liveness, data freshness & resilience
 
 - **FR-034**: The view MUST auto-refresh as new readings arrive so it remains
   "live" without user interaction.
+- **FR-034a**: The web client MUST poll the versioned API for the latest snapshot
+  on its own **UI refresh cadence**, configurable and defaulting to **10 seconds**,
+  independent of the ingestion **poll cadence** (FR-045). Throughout this spec,
+  *poll cadence* refers to the ingestion service → gateway interval and *UI refresh
+  cadence* refers to the client → API interval; the two are distinct and MUST NOT
+  be conflated.
 - **FR-035**: Each panel MUST present one of three data-freshness states, degrading
   **per-panel** (never whole-screen):
   - **Fresh** (normal): the latest reading is current.
-  - **Stale**: the reading is older than roughly twice the refresh interval — the
-    affected panel MUST be dimmed and show a `STALE` tag while still displaying the
-    last value.
+  - **Stale**: the latest reading's observation time is older than **three times
+    (3×) the ingestion poll cadence** (FR-045) — the affected panel MUST be dimmed
+    and show a `STALE` tag while still displaying the last value.
   - **Missing**: no value is available — the panel MUST show an em-dash `—` on a
     neutral gauge and MUST NEVER fabricate a `0`.
 
@@ -620,8 +672,8 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   network into the IoT VLAN through the single permitted firewall pinhole, and MUST
   be the **only** component that crosses the main→IoT boundary. No other component
   (including the API, the UI, or any future consumer) may reach into the IoT VLAN.
-- **FR-045**: The poll cadence MUST be configurable and MUST default to a value in
-  the **30–60 second** range.
+- **FR-045**: The poll cadence MUST be configurable and MUST default to **30
+  seconds** (the configurable valid range is **30–60 seconds**).
 - **FR-046**: A missed or failed poll MUST be retried on the next cadence and MUST
   NOT crash, exit, or wedge the ingestion service.
 - **FR-047**: The ingestion service MUST validate and sanitize each gateway
@@ -679,7 +731,8 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   totals (event/hourly/daily/weekly/monthly/yearly), absolute barometric pressure,
   current-condition signal, and the observation time of the reading.
 - **Daily Extremes**: The day's high and low outdoor temperature and the day's max
-  gust, used by the outdoor ring and wind panel.
+  gust, taken from the gateway's daily-aggregate fields (reset at local midnight)
+  and used by the outdoor ring and wind panel.
 - **Astronomical Data**: Sunrise time, sunset time, and moon phase for the current
   date and location, used by the Solar & Sky panel and to interpolate the sun's
   current arc position.
@@ -701,8 +754,8 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   for the UI to derive Fresh / Stale / Missing — or an explicit no-data result when
   the store is empty.
 - **Ingestion Configuration**: The configurable, secret/environment-supplied inputs
-  to the poller (gateway address, poll cadence defaulting to 30–60 s, household
-  location), never committed to source control.
+  to the poller (gateway address, poll cadence defaulting to 30 s within a 30–60 s
+  range, household location), never committed to source control.
 
 ## Success Criteria *(mandatory)*
 
@@ -714,8 +767,9 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
 - **SC-002**: 100% of date, time, sunrise, and sunset values displayed are in US
   Eastern (`America/New_York`), verified across at least one standard-time date and
   one daylight-saving date.
-- **SC-003**: The view updates to reflect a newly arrived reading within one poll
-  cadence interval without any manual refresh.
+- **SC-003**: A newly stored reading is reflected on the dashboard within **one
+  ingestion poll cadence plus one UI refresh cadence** of the reading being
+  persisted, without any manual refresh.
 - **SC-004**: On the slowest target device (2014-era Surface Pro 3), the initial
   view becomes legible and interactive within 2 seconds, and remains responsive
   while auto-refresh is active.
@@ -740,8 +794,9 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   Eastern time between sunrise and sunset (apex at solar midpoint; bounded before
   sunrise / after sunset) for 100% of sampled times.
 - **SC-010**: A reading reported by the gateway becomes visible on the dashboard,
-  end-to-end (poll → store → API → UI), within one poll cadence interval of the
-  ingestion service pulling it, with no manual export or refresh.
+  end-to-end (poll → store → API → UI), within **one ingestion poll cadence plus
+  one UI refresh cadence** of the ingestion service pulling it, with no manual
+  export or refresh.
 - **SC-011**: On a fresh install with an empty store, the dashboard loads
   successfully and 100% of panels show the Missing state — zero panels show a
   fabricated `0` and the page does not error.
@@ -791,8 +846,9 @@ Also out of scope for this feature:
   (station) pressure reading, in hPa, as supplied by the gateway and stored by the
   ingestion service.
 - The barometric trend is computed over a **3-hour** window and the per-panel
-  freshness threshold is roughly twice the refresh interval (Stale at > ~2×); the
-  exact poll cadence is a configurable detail defaulting to 30–60 s.
+  freshness threshold is three times the ingestion poll cadence (Stale at > 3×);
+  the poll cadence is configurable and defaults to 30 s (valid range 30–60 s), and
+  the client UI refresh cadence is configurable and defaults to 10 s.
 - The current-condition icon is derived from available readings/signals (e.g.,
   solar radiation, time of day, and any condition field exposed by the gateway); a
   full meteorological forecast engine is out of scope.
@@ -816,5 +872,5 @@ They are recorded here for traceability:
   engineered cap for the deployment site); beyond the cap the droplet stays full
   and escalates color blue → amber → red.
 - **CL-004 — Stale/missing presentation** *(resolved)*: Per-panel degradation —
-  **Stale** (older than ~2× the refresh interval) dims the panel and shows a
+  **Stale** (older than 3× the ingestion poll cadence) dims the panel and shows a
   `STALE` tag; **Missing** shows an em-dash `—` on a neutral gauge, never a `0`.
