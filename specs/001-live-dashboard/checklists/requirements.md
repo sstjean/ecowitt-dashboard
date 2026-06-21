@@ -2,8 +2,8 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-06-20
+**Last updated**: 2026-06-21
 **Feature**: [spec.md](../spec.md)
-
 ## Content Quality
 
 - [x] No implementation details (languages, frameworks, APIs)
@@ -32,10 +32,25 @@
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
-- Four owner-confirmation items are captured as **Outstanding Clarifications**
-  (CL-001 temperature→color breakpoints, CL-002 indoor ring color scale,
-  CL-003 "full droplet" rainfall amount, CL-004 stale/missing reading
-  presentation). Each uses a proposed default so the spec is complete and
-  testable; the defaults SHOULD be confirmed before/with planning. These are
-  recorded as confirmation points (not blocking `[NEEDS CLARIFICATION]`
-  markers), per the feature request.
+- **Scope (2026-06-21)**: The feature was re-scoped from a UI-only spec into ONE
+  end-to-end vertical slice spanning all tiers (ingestion → storage → API →
+  display), per the project principle "we build user-facing features, not tiers."
+  All prior UI requirements, design artifacts, device targets, Key Entities, and
+  Success Criteria were preserved; ingestion (FR-043–FR-047), storage
+  (FR-048–FR-050), serving (FR-051–FR-053), and cross-cutting (FR-054–FR-057)
+  requirements plus User Stories 7–9 and SC-010–SC-014 were added.
+- **Platform technologies named (SQLite, versioned API, Docker) are fixed by the
+  project constitution**, not design choices made in this spec; they are cited for
+  traceability to `.specify/memory/constitution.md` (Platform Constraints,
+  Performance Standards) rather than as implementation detail leaking into the
+  spec. Pixel-level visual detail is still deferred to the design artifacts.
+- The four owner-confirmation items (CL-001 temperature→color scale, CL-002 indoor
+  ring color scale, CL-003 rainfall full-scale cap, CL-004 stale/missing
+  presentation) are now **resolved** and locked into
+  [`design/design-language.md`](../design/design-language.md). They are retained in
+  the spec under **Resolved Design Decisions** for traceability and are no longer
+  open clarifications.
+- The spec defers all pixel-level visual detail to the design artifacts
+  (`design/design-language.md`, `design/prototype.html`,
+  `design/AmbientWeatherDashboard.png`) and references them rather than duplicating
+  them.
