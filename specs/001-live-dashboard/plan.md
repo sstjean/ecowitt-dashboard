@@ -27,7 +27,8 @@ component permitted to cross it.
 
 **Primary Dependencies**: Fastify 5 (versioned API), better-sqlite3 (SQLite, WAL),
 zod (shared runtime validation + types), SunCalc (offline sunrise/sunset/moon),
-Vite (web build), undici/global `fetch` (gateway polling). Vitest + v8 coverage;
+Vite (web build), undici/global `fetch` (gateway polling **and** NWS
+sky-condition enrichment). Vitest + v8 coverage;
 `tsc` for typecheck parity.
 
 **Storage**: SQLite (single file on a Docker volume, WAL mode), readings stored in
@@ -53,7 +54,11 @@ legible/interactive dashboard paint < 2 s on the Surface Pro 3 (SC-004); UI refl
 a new reading within one poll cadence (30 s default) + one UI refresh cadence (10 s
 default) (SC-003/SC-010); UI updates within 500 ms while polling.
 
-**Constraints**: Fully offline-capable (no internet for normal operation, FR-056);
+**Constraints**: Offline-first, not offline-only — the core slice (ingestion, store,
+API, UI) is fully offline-capable (no internet for normal operation, FR-056). The
+one permitted online enrichment is the NWS-sourced sky-condition icon (FR-033),
+which degrades to a greyed stale state when NWS is unreachable and never blocks the
+core slice;
 pull-only ingestion across a one-way firewall pinhole, poller is the single
 cross-VLAN consumer (FR-043/FR-044); storage UTC / display `America/New_York`
 everywhere (FR-054); no value-bearing config in source control (FR-055); resilient
@@ -77,7 +82,7 @@ end of this section).*
 | IV. TDD / 100% coverage / AAA / mock-data / 5-min debug | Vitest with v8 coverage hard-gated at 100%; Red-Green-Refactor; AAA-structured adversarial tests; mock/synthetic data only at every seam (stub gateway, temp SQLite, mocked fetch). |
 | Dev Workflow — branch / merge-commit / typecheck parity / Eastern display | Work on `001-live-dashboard`; PR merged with `--merge`; `tsc --noEmit` per workspace mirrors CI; all date/time pinned to `America/New_York`. |
 | Performance — poll cadence / kiosk responsiveness | Configurable poll cadence default 30 s (30–60 s); UI refresh 10 s; <500 ms UI updates; <2 s first paint target on Surface Pro 3. |
-| Platform — self-hosted Docker / no cloud / SQLite / pull-only / single cross-VLAN consumer / versioned API | 3 Dockerfiles + one Compose, offline-capable; SQLite store; pull-only poller is the only IoT-VLAN consumer; client speaks only to `/api/v1`. |
+| Platform — self-hosted Docker / no cloud / SQLite / pull-only / single cross-VLAN consumer / versioned API | 3 Dockerfiles + one Compose, offline-capable; SQLite store; pull-only poller is the only IoT-VLAN consumer; client speaks only to `/api/v1`. The lone outbound call is the NWS sky-condition enrichment (FR-033) — permitted under constitution v2.1.0 Optional External Enrichment: cached, injectable/mocked in tests, degrades to greyed stale, never a core dependency (Complexity Tracking). |
 | Security — LAN-trust / boundary integrity / secrets / input validation | No heavyweight identity (LAN trust); one-way pinhole preserved (only poller reaches gateway); secrets via `.env.local` + `.env.example`; zod validation/sanitisation before persistence. |
 | Interoperability (Home Assistant / MQTT) | Acknowledged constitution obligation; **deferred** to a separate future feature (spec Out of Scope). Persistence path kept decoupled so an MQTT publisher can be added later without coupling. |
 | DevOps — reproducible Compose / CI 100% gate / pinned tags / restart policy / **data backup** / dependency hygiene / GitHub Issue Discipline | Single `docker compose up`; CI runs all suites + 100% coverage gate + zero-warning; images pinned (no `latest`); `restart: unless-stopped`; **scripted off-host SQLite backup + documented restore (Decision 11 / finding C1)**; Dependabot triaged; Feature + User Story issues with sub-issue linkage, tasks as issue checklist items. |
@@ -85,12 +90,14 @@ end of this section).*
 **Initial gate result**: PASS — no violations; no entries required in Complexity
 Tracking.
 
-**Post-Phase-1 re-evaluation**: PASS — the data model, the `/api/v1` contract, and
-the quickstart introduce no new abstractions or cross-VLAN consumers and preserve
-UTC-store/Eastern-display, mock-data testing, and the single-pinhole boundary. The
-one recorded deviation (full-fidelity capture, research D13) is a storage-fidelity
-choice, not a new abstraction or boundary; it is tracked in Complexity Tracking
-below.
+**Post-Phase-1 re-evaluation**: PASS (under constitution **v2.1.0**) — the data
+model, the `/api/v1` contract, and the quickstart introduce no new abstractions or
+cross-VLAN consumers and preserve UTC-store/Eastern-display, mock-data testing, and
+the single-pinhole boundary. Two recorded deviations are tracked in Complexity
+Tracking below: full-fidelity capture (research D13) and the NWS sky-condition
+enrichment (FR-033) — the latter is explicitly sanctioned by the v2.1.0 Optional
+External Enrichment allowance (degrades to greyed stale, mocked in tests, never a
+core dependency).
 
 ## Project Structure
 
@@ -143,7 +150,8 @@ apps/
 │   │   ├── routes/v1/latest.ts   # GET /api/v1/latest (+ no-data path)
 │   │   ├── routes/v1/health.ts   # GET /api/v1/health
 │   │   ├── store.ts              # better-sqlite3 reads (WAL)
-│   │   └── enrich.ts             # SunCalc astro + barometer trend + condition icon
+│   │   └── enrich.ts             # SunCalc astro + barometer trend + daily-derived aggregates (day high/low, 10-min avg wind, max-gust dir) from history
+│   │   └── nws.ts                # NWS client (fetch+cache+timeout) + condition-icon mapping
 │   ├── Dockerfile
 │   └── tests/               # fastify.inject against temp SQLite fixtures
 └── web/                     # Vite + TypeScript, vanilla DOM/SVG (port of prototype)
@@ -172,9 +180,10 @@ IoT-VLAN gateway; the web app talks only to the API.
 
 ## Complexity Tracking
 
-> One deliberate deviation from YAGNI (Principle II), explicitly approved by the
-> product owner.
-
+> Two deliberate deviations, each explicitly approved by the product owner: a YAGNI
+> break (full-fidelity capture) and an Optional External Enrichment under
+> constitution v2.1.0 (the NWS sky-condition icon).
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | **Full-fidelity capture** — store every field the gateway reports (`metrics_json` full metric map), beyond the ~24 metrics the current dashboard renders (research D13). | Historical data for un-surfaced metrics cannot be back-filled; capturing all fields now means complete history accrues immediately and any field can later appear in the UI / a History or MQTT feature with **no migration and no data loss**. User explicitly accepted this YAGNI break. | *Store only the dashboard subset* (strict YAGNI) — permanently loses history for every un-surfaced sensor, the exact outcome the user wants to avoid. *Wide column-per-sensor schema* — can't anticipate every GW2000B sensor/channel and forces a migration per new sensor. Bounded cost (a wider JSON blob per row) for an irreversible benefit. |
+| **NWS sky-condition enrichment** — the barometer's sky-condition icon is fetched from the NWS current-conditions API (`api.weather.gov`) rather than computed locally (FR-033), making it the single outbound dependency in an otherwise offline-first system. Sanctioned by constitution v2.1.0 (Optional External Enrichment). | Sky condition is a complex classification the household's simplistic sensors (solar W/m², rain rate) cannot reproduce faithfully; NWS gives an authoritative value. Risk is bounded: it is cached, behind an injectable/mocked client (no live network in tests), times out, and degrades to a **greyed stale** (or neutral) icon — it never blocks ingestion/serving or fabricates a condition. | *Compute locally from solar/rain thresholds* (the prior deterministic rule) — rejected: it mislabels common skies (bright overcast, partly cloudy, fog, snow) because the sensors lack the inputs, producing a confidently wrong icon. *Omit the icon entirely* — loses a useful at-a-glance signal the product owner wants. The icon is non-headline (not on the hero card), so a greyed stale fallback is an acceptable worst case. |

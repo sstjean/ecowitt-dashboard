@@ -1,7 +1,18 @@
 <!--
   Sync Impact Report
   ==================
-  Version change: 1.0.0 → 2.0.0
+  Version change: 2.0.0 → 2.1.0
+  Bump rationale (2.1.0): MINOR — clarifies that "offline-first"
+    is NOT "offline-only" and adds an Optional External
+    Enrichment allowance: non-essential derived values the local
+    sensors cannot faithfully compute (e.g., the NWS-sourced
+    sky-condition icon) MAY be fetched from a trusted public API,
+    provided they degrade gracefully to a stale/greyed state,
+    never block core ingestion/serving, are cached, and are
+    mocked in tests. No principles removed; backward-compatible
+    relaxation of the offline constraint.
+  ----
+  Prior version change: 1.0.0 → 2.0.0
   Bump rationale: MAJOR — backward-incompatible redefinition of
     the platform. The project pivoted from a cloud/Azure,
     enterprise-security design to a self-hosted, local-first,
@@ -206,7 +217,24 @@ silent regressions.
   on-premises as Docker containers on the household mini-PC,
   alongside the existing Home Assistant stack. There is NO
   cloud dependency for normal operation; the system MUST keep
-  collecting and serving data with no internet connectivity.
+  collecting and serving its sensor data with no internet
+  connectivity (see Offline-First, Not Offline-Only).
+- **Offline-First, Not Offline-Only**: "Local-first" guarantees
+  that sensor **ingestion and serving** require no internet —
+  the poller→store→API→UI core MUST keep collecting and serving
+  with zero connectivity. It does NOT forbid *optional* outbound
+  enrichment. Where a useful value cannot be faithfully computed
+  from the local sensors, the system MAY fetch it from a trusted
+  public API as a non-essential overlay.
+- **Optional External Enrichment**: Such enrichment (e.g., the
+  sky-condition icon from the NWS current-conditions API) MUST:
+  (a) degrade gracefully — on timeout / unreachable / stale it
+  shows a stale (greyed) or neutral state, never an error or a
+  fabricated value; (b) never block persistence or core serving;
+  (c) be cached and respectful of the upstream's rate/policy;
+  (d) sit behind an injectable client so tests use mocked
+  responses only (no live network in CI). Enrichment MUST NOT
+  become a core dependency of the dashboard.
 - **No Public Cloud Hosting**: Server-side components MUST NOT
   require a public cloud subscription (Azure, AWS, GCP) to run.
   Optional remote access (e.g., Tailscale) is permitted but
@@ -274,6 +302,13 @@ consumer.
   than port-forwarding or exposing the dashboard to the public
   internet. The overlay's device authorization is the trust
   boundary.
+- **Outbound Enrichment Calls**: Outbound requests to trusted
+  public APIs (e.g., NWS `api.weather.gov`) for optional
+  enrichment are permitted from the main network over HTTPS.
+  They MUST send no secrets, MUST set a contact `User-Agent` per
+  the upstream's policy, MUST time out and fail safe to a
+  stale/neutral state, and MUST NOT be required for core
+  function.
 - **Transport**: Plain HTTP is acceptable on the LAN. If a
   secure context is needed (e.g., PWA installability or remote
   access), TLS MUST be provided via the remote-access overlay

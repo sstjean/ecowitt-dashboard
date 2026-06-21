@@ -47,7 +47,8 @@ the UI refresh cadence (default 10 s).
 1. Start the stack with the stub/real gateway producing a valid payload.
 2. `curl http://<host>:<api-port>/api/v1/latest` → `status: "ok"`, a non-null
    `reading`, an `observedAt` in **UTC** (`Z` suffix), plus `astro`, `baroTrend`,
-   `conditionIcon`. Schema: [contracts/api-v1.openapi.yaml](contracts/api-v1.openapi.yaml).
+   `conditionIcon` (NWS-sourced) and `conditionStale` (`true` ⇒ greyed icon when NWS
+   is unavailable). Schema: [contracts/api-v1.openapi.yaml](contracts/api-v1.openapi.yaml).
 3. Load the dashboard → panels render real values within one poll + one UI refresh
    cadence (SC-003/SC-010).
 

@@ -59,27 +59,37 @@ successful poll. (Stored within the full map; surfaced via the API.)
 | `observedAt` | string (ISO-8601 UTC) | — | Observation time; basis for freshness (FR-035/FR-052) and ordering. |
 | `outdoorTempF` | number | °F | Headline value (FR-009). |
 | `feelsLikeF` | number | °F | Heat-index/wind-chill (FR-011/FR-011b); colours to 120 °F. |
-| `dewpointF` | number | °F | Supporting readout (FR-011). |
-| `outdoorHumidityPct` | number | % | Supporting readout (FR-011). |
-| `dayHighF` | number | °F | Gateway daily max, as-is (FR-010/FR-018b). |
-| `dayLowF` | number | °F | Gateway daily min, as-is (FR-010/FR-018b). |
-| `windMph` | number | mph | Current wind speed (FR-014). |
-| `windDirDeg` | number (0–360) | ° | Bearing (FR-015/FR-018a). |
-| `gustMph` | number | mph | Current gust (FR-016). |
-| `windAvg10mMph` | number | mph | Gateway 10-min avg, as-is (FR-017/FR-018b). |
-| `maxDailyGustMph` | number | mph | Gateway daily max gust, as-is (FR-018/FR-018b). |
-| `maxDailyGustDir` | string (cardinal) | — | Direction of max daily gust (FR-018). |
-| `solarWm2` | number | W/m² | Solar radiation (FR-019); also feeds condition icon. |
+| `dewpointF` | number | °F | Supporting readout (FR-011); `common_list 0x03`. |
+| `outdoorHumidityPct` | number | % | Supporting readout (FR-011); `common_list 0x07`. |
+| `dayHighF` | number | °F | **Derived** by the API: max `outdoorTempF` over stored readings since local midnight — gateway does not supply (FR-010/FR-018b, §7b). |
+| `dayLowF` | number | °F | **Derived** by the API: min `outdoorTempF` over stored readings since local midnight — gateway does not supply (FR-010/FR-018b, §7b). |
+| `windMph` | number | mph | Current wind speed (FR-014); `common_list 0x0B`. |
+| `windDirDeg` | number (0–360) | ° | Bearing (FR-015/FR-018a); `common_list 0x0A`. |
+| `gustMph` | number | mph | Current gust (FR-016); `common_list 0x0C`. |
+| `windAvg10mMph` | number | mph | **Derived** by the API: rolling mean of stored `windMph` over the last 10 min — gateway does not supply (FR-017/FR-018b, §7b). |
+| `maxDailyGustMph` | number | mph | Gateway daily max gust **speed**, as-is; `common_list 0x19` (FR-018). |
+| `maxDailyGustDir` | string (cardinal) | — | **Derived** by the API: wind direction at the largest gust observed since local midnight — gateway supplies the speed but not the direction (FR-018/FR-018b, §7b). |
+| `solarWm2` | number | W/m² | Solar radiation (FR-019). |
 | `uvIndex` | number | — | UV index (FR-020). |
 | `indoorTempF` | number | °F | Indoor ring (FR-024). |
 | `indoorHumidityPct` | number | % | Indoor ring (FR-025). |
-| `rainEventIn` | number | in | (FR-029). |
-| `rainHourlyIn` | number | in | Drives "raining" condition rule (FR-033). |
-| `rainDailyIn` | number | in | Droplet fill basis (FR-027/FR-028). |
-| `rainWeeklyIn` | number | in | (FR-029). |
-| `rainMonthlyIn` | number | in | (FR-029). |
-| `rainYearlyIn` | number | in | (FR-029). |
-| `pressureHpa` | number | hPa | Absolute/station pressure (FR-031). |
+| `rainEventIn` | number | in | (FR-029); `piezoRain 0x0D`. |
+| `rainHourlyIn` | number | in | (FR-029); `piezoRain 0x7C`. |
+| `rainDailyIn` | number | in | Droplet fill basis (FR-027/FR-028); `piezoRain 0x10`. |
+| `rainWeeklyIn` | number | in | (FR-029); `piezoRain 0x11`. |
+| `rainMonthlyIn` | number | in | (FR-029); `piezoRain 0x12`. |
+| `rainYearlyIn` | number | in | (FR-029); `piezoRain 0x13`. |
+| `pressureHpa` | number | hPa | Absolute/station pressure (FR-031); from `wh25.abs` (inHg→hPa). |
+
+> **Rain is sourced from `piezoRain` (the WS90 haptic gauge), never the legacy `rain`
+> tipping bucket** — device-verified: the tipping bucket reads `0.00` during real
+> rain while `piezoRain` carries the true totals. See
+> [contracts/gateway-livedata.md](contracts/gateway-livedata.md). The headline panel
+> is still **labelled "Rain"** in the UI; only the data source changes.
+>
+> **Derived fields** (`dayHighF`, `dayLowF`, `windAvg10mMph`, `maxDailyGustDir`) are
+> not present in any single gateway poll; the API computes them from stored history
+> (§7b) and merges them into the projected snapshot.
 
 - **Validation rules**: every numeric field finite and within physical bounds
   (e.g., humidity 0–100, windDirDeg 0–360, non-negative rainfall/solar/uv). Out-of-
@@ -120,7 +130,8 @@ explicit **no-data** result when the store is empty
 | `reading` | LiveReadingSnapshot \| null | The stored values; null when `no-data`. |
 | `astro` | AstronomicalData | Sun/moon (server-computed, offline). |
 | `baroTrend` | BarometricTrend | Trend over 3 h window or `unavailable`. |
-| `conditionIcon` | `"clear" \| "cloudy" \| "rainy" \| "night"` | Deterministic (FR-033). |
+| `conditionIcon` | enum \| null | NWS-sourced current condition mapped to the icon vocabulary (`clear`/`partly-cloudy`/`cloudy`/`fog`/`rainy`/`snow`/`thunderstorm`/`night`); `null` until the first successful NWS fetch (FR-033, §7a). |
+| `conditionStale` | boolean | `true` when NWS is unavailable or its last good fetch is older than `NWS_STALE_AFTER_SECONDS` ⇒ client greys the icon (FR-033, §7a). |
 | `serverTime` | ISO-8601 UTC | For the client to reason about age if needed. |
 
 - **Freshness is derived by the client** from `observedAt` vs the poll cadence
@@ -141,8 +152,56 @@ explicit **no-data** result when the store is empty
 - `deltaHpa`: number | null — change over the **3-hour** window (FR-032).
 - **Rules**: computed from stored readings spanning ~3 h. When **fewer than 3 h** of
   history exist, `direction = "unavailable"`, `deltaHpa = null` (FR-032a, edge case)
-  — never a fabricated steady/zero trend. "Steady" when |delta| is within a small
-  configured epsilon.
+  — never a fabricated steady/zero trend. The dead-band is explicit: `direction =
+  "steady"` when `|deltaHpa| <= BARO_STEADY_EPSILON_HPA`, `"rising"` when
+  `deltaHpa > +epsilon`, `"falling"` when `deltaHpa < -epsilon`. The epsilon is
+  configurable (§10) so the rising/steady/falling boundary is deterministic and
+  testable.
+
+## 7a. ConditionData (NWS-sourced, online enrichment — offline-first, not offline-only)
+
+> **Optional external enrichment** (constitution v2.1.0). The sky-condition icon is
+> the one value fetched from outside the LAN, because the local sensors cannot
+> faithfully classify sky condition. It degrades to a greyed stale state when NWS is
+> unavailable and never blocks the core slice (FR-033/FR-056).
+
+- **Source**: NWS `api.weather.gov` — resolve the household lat/long to the nearest
+  observation station and read its latest observation (textDescription / icon +
+  day-night). HTTPS, no API key; a contact `User-Agent` is required by NWS policy.
+- **Mapping**: a pure function `nwsObservation → conditionIcon` over the vocabulary
+  `clear | partly-cloudy | cloudy | fog | rainy | snow | thunderstorm | night`,
+  unit-tested in isolation.
+- **Caching & freshness**: the last good fetch is cached for `NWS_CACHE_TTL_SECONDS`
+  and reused; `conditionStale = true` when no fetch has ever succeeded or the last
+  good fetch is older than `NWS_STALE_AFTER_SECONDS`. A per-request timeout
+  (`NWS_TIMEOUT_MS`) bounds each call; on failure the cached icon is kept and marked
+  stale.
+- **Client behaviour**: renders `conditionIcon` normally when `conditionStale` is
+  false; greys it (stale) otherwise. Independent of per-panel sensor freshness (§8)
+  — a stale icon never dims the rest of the barometer panel.
+- **Isolation**: behind an injectable client; tests use mocked NWS responses only
+  (FR-057). The poller and store are unaffected — this is API-side enrichment.
+
+## 7b. DailyDerived (derived, server-side, from stored history)
+
+> The household GW2000B does **not** report day high/low temperature, a 10-minute
+> average wind **speed**, or the **direction** of the max daily gust (device-verified
+> — [contracts/gateway-livedata.md](contracts/gateway-livedata.md)). The API derives
+> them from the application's own SQLite history and merges them into the projected
+> `LiveReadingSnapshot` (FR-018b). This is the same "enrich from stored readings"
+> pattern as the barometric trend (§7).
+
+- `dayHighF` / `dayLowF`: max / min `outdoorTempF` across stored readings whose
+  `observedAt` falls on/after the most recent local midnight (`America/New_York`).
+- `windAvg10mMph`: arithmetic mean of stored `windMph` over the trailing 10 minutes.
+- `maxDailyGustDir`: the `windDirDeg` (rendered cardinal) recorded at the reading
+  with the largest `gustMph` since local midnight; paired with the gateway's reported
+  max daily gust **speed** (`maxDailyGustMph`).
+- **Cold-start rule**: with too little history (e.g. just after a fresh install or
+  local midnight rollover), each derived value falls back to the current reading's
+  instantaneous equivalent (e.g. `dayHighF = dayLowF = outdoorTempF`,
+  `windAvg10mMph = windMph`, `maxDailyGustDir` = direction of the current gust) —
+  never a fabricated zero. These fields are bounded and unit-tested in isolation.
 
 ## 8. DataFreshnessState (view-derived, per panel)
 
@@ -172,8 +231,12 @@ Not stored or transported; computed by the client per panel from `observedAt`.
 | `UI_REFRESH_SECONDS` | `10` | Client poll of the API (FR-034a). |
 | `HOUSEHOLD_LAT`, `HOUSEHOLD_LON` | — (required) | For SunCalc (FR-021/023). |
 | `RAIN_FULL_SCALE_IN` | `4.0` | Droplet cap (FR-028). |
-| `CLEAR_SKY_WM2` | `500` | Condition-icon threshold (FR-033). |
 | `BARO_TREND_WINDOW_HOURS` | `3` | Trend window (FR-032). |
+| `BARO_STEADY_EPSILON_HPA` | `0.3` | Dead-band for "steady": `|deltaHpa| <= epsilon` ⇒ steady (§7). |
+| `NWS_USER_AGENT` | — (required) | Contact string NWS requires for `api.weather.gov` requests (FR-033, §7a). |
+| `NWS_CACHE_TTL_SECONDS` | `600` | How long a good NWS fetch is reused before refetch. |
+| `NWS_STALE_AFTER_SECONDS` | `3600` | Last good fetch older than this ⇒ `conditionStale` (greyed). |
+| `NWS_TIMEOUT_MS` | `5000` | Per-request NWS timeout; on failure keep last good, mark stale. |
 | `SQLITE_PATH` | — (required) | DB file path (on Docker volume). |
 
 - Supplied via environment / gitignored `.env.local`; documented in `.env.example`
@@ -186,7 +249,8 @@ Not stored or transported; computed by the client per panel from `observedAt`.
 ```text
 GatewayResponse --(validate+normalise, FR-047/FR-050)--> FullMetricMap --(persist all fields)--> StoredReading
 FullMetricMap --(project curated subset)--> LiveReadingSnapshot
-StoredReading (latest) --(project + enrich: SunCalc + trend + icon)--> LatestSnapshot --(HTTP /api/v1/latest)--> Web client
+StoredReading (latest) --(project + enrich: SunCalc astro + baro trend + daily-derived aggregates from history)--> LatestSnapshot --(HTTP /api/v1/latest)--> Web client
+NWS api.weather.gov --(fetch+cache+map; stale on failure, online enrichment)--> ConditionData --(conditionIcon + conditionStale)--> LatestSnapshot
 Web client --(observedAt vs 3x cadence)--> DataFreshnessState (per panel)
 Web client --(tempF)--> TemperatureColorScale (per ring)
 IngestionConfiguration --> poller (cadence, gateway, location) ; API (location, thresholds) ; web (UI refresh)

@@ -17,7 +17,7 @@ paths:
       summary: Latest reading snapshot (or explicit no-data).
       description: >
         Returns the most recent stored reading enriched with astronomical data, a
-        3-hour barometric trend, and a deterministic condition icon. On a fresh
+        3-hour barometric trend, and an NWS-sourced condition icon. On a fresh
         install with an empty store, returns status "no-data" (HTTP 200) and never
         fabricates zeros (FR-051/FR-052/FR-053).
       responses:
@@ -68,6 +68,7 @@ paths:
                       direction: rising
                       deltaHpa: 1.4
                     conditionIcon: clear
+                    conditionStale: false
                 noData:
                   summary: Fresh install, empty store
                   value:
@@ -83,7 +84,11 @@ paths:
                     baroTrend:
                       direction: unavailable
                       deltaHpa: null
-                    conditionIcon: clear
+                    # Sky condition is NWS-sourced (FR-033). Until the first
+                    # successful NWS fetch the icon is null and stale ⇒ the client
+                    # shows a greyed/neutral icon. Never fabricated from sensors.
+                    conditionIcon: null
+                    conditionStale: true
   /health:
     get:
       operationId: getHealth
@@ -104,7 +109,7 @@ components:
     LatestSnapshot:
       type: object
       additionalProperties: false
-      required: [status, observedAt, reading, astro, baroTrend, conditionIcon, serverTime]
+      required: [status, observedAt, reading, astro, baroTrend, conditionIcon, conditionStale, serverTime]
       properties:
         status:
           type: string
@@ -122,8 +127,12 @@ components:
         baroTrend:
           $ref: "#/components/schemas/BarometricTrend"
         conditionIcon:
-          type: string
-          enum: [clear, cloudy, rainy, night]
+          type: [string, "null"]
+          enum: [clear, partly-cloudy, cloudy, fog, rainy, snow, thunderstorm, night, null]
+          description: NWS-sourced current sky condition mapped to the icon vocabulary; null until the first successful NWS fetch (FR-033).
+        conditionStale:
+          type: boolean
+          description: true when NWS is unavailable or its last good fetch is older than NWS_STALE_AFTER_SECONDS; the client greys the icon (FR-033).
         serverTime:
           type: string
           format: date-time

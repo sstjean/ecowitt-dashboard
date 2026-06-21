@@ -18,36 +18,70 @@ payload itself is never persisted verbatim (FR-047).
   hung/unreachable gateway fails fast and retries next cadence (FR-046).
 - No authentication on the local API (LAN-trust model).
 
-## Payload shape (observed Ecowitt local-API format)
+## Payload shape (DEVICE-VERIFIED — Source of Truth)
 
-The response is a JSON object of category arrays; each item is an
-`{ id|channel, val, unit? }` record. Exact ids vary by firmware/sensor set, so the
-mapper reads by id and tolerates absent optional sensors but **rejects** the whole
-payload if a required field is missing or non-numeric.
+> **Canonical source:** this section is grounded in a **live capture** from the
+> household GW2000B (`GET http://192.168.30.109/get_livedata_info`, HTTP 200,
+> 2026-06-21), **not** vendor documentation. Where Ecowitt's published docs and the
+> real device disagree, **the device payload wins** — the docs are a proxy, the wire
+> format is canonical. Field ids below are the ones this gateway actually emits.
+
+The response is a JSON object of **category arrays**; each item is an
+`{ id, val, unit? }` record (some categories use named keys, e.g. `wh25`). The mapper
+reads by id within its category and tolerates absent optional sensors but **rejects**
+the whole payload if a required field is missing or non-numeric.
 
 > **Full-fidelity capture (D13):** the poller normalises and stores **all** reported
 > categories/fields, not just the rows that feed the current dashboard. The table
 > below shows the dashboard-relevant fields explicitly; **any additional categories**
-> the gateway emits — e.g. relative pressure, heat index / wind chill, lightning
-> (WH57), soil moisture (WH51), multi-channel temp/humidity (WH31), PM2.5 / CO₂ air
-> quality (WH41/WH45), leaf wetness, leak sensors (WH55), and per-sensor battery /
-> signal status — are captured into the `FullMetricMap` as well. Unknown-unit fields
-> are preserved as-is rather than dropped.
+> the gateway emits — e.g. `debug` (heap/runtime), lightning (WH57), soil moisture
+> (WH51), multi-channel temp/humidity (WH31), PM2.5 / CO₂ air quality (WH41/WH45),
+> leaf wetness, leak sensors (WH55), and per-sensor battery / signal status — are
+> captured into the `FullMetricMap` as well. Unknown-unit fields are preserved as-is
+> rather than dropped.
 
-Representative categories the poller reads:
+Categories observed on this device and how they map to the snapshot:
 
-| Category | Representative fields | Maps to snapshot |
-|----------|----------------------|------------------|
-| `common_list` | outdoor temp, feels like, dewpoint, solar (W/m²), UV, abs pressure | `outdoorTempF`, `feelsLikeF`, `dewpointF`, `solarWm2`, `uvIndex`, `pressureHpa` |
-| outdoor humidity (`common_list` / `ch_aisle`) | outdoor RH % | `outdoorHumidityPct` |
-| `wh25` (indoor T/H/baro) | indoor temp, indoor RH | `indoorTempF`, `indoorHumidityPct` |
-| wind block | speed, dir (deg), gust, 10-min avg, max daily gust (+dir) | `windMph`, `windDirDeg`, `gustMph`, `windAvg10mMph`, `maxDailyGustMph`, `maxDailyGustDir` |
-| daily extremes | day high/low outdoor temp | `dayHighF`, `dayLowF` |
-| `rain` / `rain_list` | event, hourly, daily, weekly, monthly, yearly | `rainEventIn`, `rainHourlyIn`, `rainDailyIn`, `rainWeeklyIn`, `rainMonthlyIn`, `rainYearlyIn` |
+| Category | Observed fields (id → meaning) | Maps to snapshot |
+|----------|-------------------------------|------------------|
+| `common_list` | `0x02` outdoor temp °F · `0x07` outdoor RH % · `"3"` feels-like/apparent temp °F¹ · `0x03` dewpoint °F · `0x0B` wind mph · `0x0C` gust mph · `0x19` max **daily** gust mph · `0x0A` wind dir ° · `0x15` solar W/m² · `0x17` UVI · `"5"` VPD kPa (extra) · `0x6D` (10-min avg wind dir?)¹ | `outdoorTempF`, `outdoorHumidityPct`, `feelsLikeF`, `dewpointF`, `windMph`, `gustMph`, `maxDailyGustMph`, `windDirDeg`, `solarWm2`, `uvIndex` |
+| `wh25` (indoor + barometer) | `intemp` indoor temp °F · `inhumi` indoor RH % · `abs` absolute pressure (inHg) · `rel` relative pressure (inHg) | `indoorTempF`, `indoorHumidityPct`, `pressureHpa` (from `abs`, inHg→hPa) |
+| `piezoRain` (WS90 haptic gauge) — **the real rain source** | `srain_piezo` flag · `0x0D` event · `0x0E` rate · `0x7C` hourly · `0x10` daily · `0x11` weekly · `0x12` monthly · `0x13` yearly (+ ws90 battery/cap/firmware) | `rainEventIn`, `rainHourlyIn`, `rainDailyIn`, `rainWeeklyIn`, `rainMonthlyIn`, `rainYearlyIn` |
+| `rain` (legacy tipping bucket) | same id set as `piezoRain` | **NOT used** (see below) |
+| `debug` | heap, runtime, usr_interval, is_cnip | captured into `FullMetricMap` only |
 
-> **Daily aggregates** (day high/low, 10-min avg wind, max daily gust) are taken
-> from the gateway's own fields **as-is** — the application does not recompute them
-> (FR-018b). The gateway resets these at local midnight.
+¹ Observed but not vendor-documented; `common_list` `"3"` and `0x6D` are mapped on
+best-evidence and **confirmed at implementation** against a fresh capture.
+
+> **⚠ Rain comes from `piezoRain`, NEVER the `rain` tipping bucket — this is the
+> reason the project exists.** In the device-verified capture taken *during an active
+> rainstorm*, every `rain` (tipping-bucket) total read `0.00 in` while `piezoRain`
+> (the WS90 haptic gauge) reported the true accumulation (e.g. `0.67 in` daily). The
+> stock Ecowitt app/console surface the dead `rain` value by default and bury
+> `piezoRain` behind scrolling. This dashboard **maps all six rain totals from
+> `piezoRain`** so a real storm is never shown as zero. The `rain` category is still
+> captured into the `FullMetricMap` (D13) but is not projected to the snapshot.
+
+> **Barometric pressure lives in `wh25`, not `common_list`.** The device exposes
+> absolute (`abs`) and relative (`rel`) pressure under `wh25` in **inHg**; the mapper
+> converts `abs` → hPa for `pressureHpa` (FR-031).
+
+> **Wind lives inside `common_list`, not a separate "wind block".** Speed, gust, max
+> daily gust, and direction are all `common_list` ids.
+
+> **Derived daily/rolling aggregates — NOT supplied by this gateway.** The live
+> payload does **not** contain day high/low outdoor temperature, a 10-minute average
+> wind **speed**, or the **direction** of the max daily gust. These are **computed by
+> the API from the application's own stored history** (FR-018b):
+> - `dayHighF` / `dayLowF` — max/min `outdoorTempF` over stored readings since local
+>   midnight (`America/New_York`).
+> - `windAvg10mMph` — rolling mean of stored `windMph` over the last 10 minutes.
+> - `maxDailyGustDir` — wind direction recorded at the largest gust observed since
+>   local midnight (the gateway supplies the max daily gust **speed** via `0x19`, but
+>   not its direction).
+>
+> Only the max daily gust **speed** (`maxDailyGustMph`, `common_list 0x19`) is taken
+> from the gateway as-is.
 
 ## Unit normalisation
 

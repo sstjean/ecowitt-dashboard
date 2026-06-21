@@ -84,10 +84,11 @@ re-decided here.
 - **Validation**: Each response is parsed and validated with **zod** before
   persistence; malformed/partial payloads are rejected and nothing is written
   (FR-047/FR-050). The Ecowitt payload is a set of category arrays
-  (`common_list`, `rain`/`rain_list`, `wh25`, `wh65`/outdoor, etc.) of
-  `{id|channel, val, unit}`; a mapping layer normalises the validated payload into a
+  (`common_list`, `piezoRain`/`rain`, `wh25`, `debug`, etc.) of
+  `{id, val, unit?}`; a mapping layer normalises the validated payload into a
   canonical **full metric map** (all reported fields, normalised units), from which
-  the dashboard's curated `LiveReadingSnapshot` is a projection (Decision 13).
+  the dashboard's curated `LiveReadingSnapshot` is a projection (Decision 13). The
+  exact id→field mapping is **device-verified** (Decision 15), not inferred from docs.
 - **Alternatives considered**: *MQTT/native push from gateway* — blocked by VLAN,
   prohibited by constitution; *axios/got* — unnecessary dependency over built-in
   fetch — rejected on Simplicity.
@@ -109,8 +110,10 @@ re-decided here.
 - **Decision**: Compute sunrise, sunset, the sun's current arc position, and the
   moon phase with **SunCalc** from a configured household latitude/longitude and the
   current date — entirely offline.
-- **Rationale**: FR-021/FR-022/FR-023 require astronomical values; FR-056 forbids
-  any internet dependency. SunCalc is a tiny, pure, dependency-free library that
+- **Rationale**: FR-021/FR-022/FR-023 require astronomical values; the **core slice
+  must run with no internet dependency** (FR-056) — the one sanctioned exception is
+  the optional NWS sky-condition enrichment (D14/constitution v2.1.0), which astro is
+  not. SunCalc is a tiny, pure, dependency-free library that
   needs only lat/long + time, so it runs fully offline on the mini-PC. Avoids
   hand-rolling astronomical algorithms.
 - **Where it runs**: server-side (API enriches the snapshot) so the UI stays a thin
@@ -179,7 +182,9 @@ re-decided here.
   a gitignored `.env.local`, documented by a committed **`.env.example`**. Keys:
   gateway base URL/IP, ingestion poll cadence (default 30 s), UI refresh cadence
   (default 10 s), household latitude/longitude, rainfall full-droplet cap (4.0 in),
-  clear-sky solar threshold (500 W/m²), barometer trend window (3 h).
+  barometer trend window (3 h) + steady epsilon (0.3 hPa), and the NWS enrichment
+  settings — `NWS_USER_AGENT` (required contact string), `NWS_CACHE_TTL_SECONDS`
+  (600), `NWS_STALE_AFTER_SECONDS` (3600), `NWS_TIMEOUT_MS` (5000) (D14).
 - **Rationale**: FR-055 and the constitution's Secrets Management — nothing
   value-bearing in source control; one template documents required inputs.
 
@@ -237,6 +242,72 @@ re-decided here.
   with less surface, and an EAV/history table can be derived later from the captured
   data if a History feature needs per-metric indexing.
 
+## Decision 14 — Sky-condition icon source: NWS current conditions (online enrichment)
+
+- **Decision**: The barometer's sky-condition icon is sourced from the **National
+  Weather Service** current-conditions API (`api.weather.gov`) for the household
+  location, **not** computed locally. The API service resolves the configured
+  lat/long → nearest observation station → latest observation, then maps the NWS
+  textDescription/icon (incl. day/night) to the app's icon vocabulary
+  (`clear | partly-cloudy | cloudy | fog | rainy | snow | thunderstorm | night`)
+  via a pure, unit-tested function. The last good fetch is cached
+  (`NWS_CACHE_TTL_SECONDS`); each call has a timeout (`NWS_TIMEOUT_MS`).
+- **Offline-first, not offline-only**: this is the system's single outbound
+  enrichment, sanctioned by constitution **v2.1.0** (Optional External Enrichment).
+  When NWS is unreachable/times out, or its last good fetch is older than
+  `NWS_STALE_AFTER_SECONDS`, the client renders the icon **greyed (stale)** over the
+  last-known value (or neutral if none). It never blocks ingestion/serving and never
+  fabricates a condition.
+- **Rationale**: sky condition is a complex classification the household's simplistic
+  sensors (solar W/m², rain rate) cannot reproduce faithfully — a local threshold
+  rule mislabels bright overcast, partly cloudy, fog, and snow. NWS gives an
+  authoritative value; `api.weather.gov` needs no API key, only a contact
+  `User-Agent`.
+- **Testability**: the NWS client is injectable; all tests use mocked responses
+  (FR-057) — no live network in CI. Covers success→map, cache reuse within TTL,
+  timeout→stale, and stale-after→stale.
+- **Alternatives considered**: *deterministic local rule* (Night→Rainy→Clear on
+  solar ≥ 500 W/m²→Cloudy) — rejected: confidently wrong on common skies the sensors
+  can't distinguish; *omit the icon* — rejected: loses a wanted at-a-glance signal.
+  The icon is non-headline, so a greyed stale worst case is acceptable.
+
+## Decision 15 — Device-verified gateway payload (Source of Truth over docs)
+
+- **Decision**: The gateway contract is grounded in a **live capture** from the
+  household GW2000B (`GET http://192.168.30.109/get_livedata_info`, HTTP 200,
+  2026-06-21), taken during an active rainstorm. Where Ecowitt's published docs and
+  the real device disagree, **the device payload is canonical**; docs are a proxy.
+  Concrete corrections this drove:
+  - **Rain → `piezoRain`, not `rain`.** The legacy tipping-bucket (`rain`) read
+    `0.00 in` across all totals *during real rain* while the WS90 haptic gauge
+    (`piezoRain`) reported the true accumulation. All six rain totals are mapped from
+    `piezoRain`; `rain` is still captured into the `FullMetricMap` (D13) but never
+    projected. **This dead-tipping-bucket failure is the reason the project exists.**
+    The UI panel remains **labelled "Rain".**
+  - **Pressure → `wh25`.** Absolute/relative pressure live under `wh25` (in inHg),
+    not `common_list`; the mapper converts `abs` → hPa for `pressureHpa`.
+  - **Wind → `common_list`.** Speed, gust, max-daily-gust speed, and direction are
+    `common_list` ids — there is no separate "wind block".
+  - **Derived daily/rolling aggregates.** The device does **not** report day high/low
+    temperature, a 10-minute average wind **speed**, or the **direction** of the max
+    daily gust. The API derives these from the application's own stored history
+    (FR-018b) — the same enrich-from-history pattern as the baro trend. Only the max
+    daily gust **speed** (`common_list 0x19`) is taken from the gateway as-is.
+- **Decision (derivation choice)**: Day high/low, 10-min average wind, and max-gust
+  direction are **derived from stored history** rather than dropped — the user
+  explicitly chose history-derivation over omission so the panels stay complete.
+  Cold-start (insufficient history) falls back to the current reading's instantaneous
+  equivalent, never a fabricated zero.
+- **Rationale**: A spec built on inferred field ids would have shipped a dashboard
+  that shows zero rain during a storm — the exact failure the product is meant to
+  fix. Empirical capture is the only trustworthy contract.
+- **Open confirmations (low risk)**: `common_list "3"` (taken as feels-like/apparent
+  temp) and `0x6D` (suspected 10-min average wind direction) are mapped on
+  best-evidence and re-checked against a fresh capture at implementation; they are
+  non-blocking extras captured regardless (D13).
+- **Testability**: the mapping/derivation are pure functions unit-tested against
+  canned fixtures derived from the live capture; no test reaches the real device.
+
 ## Resolved unknowns summary
 
 | Unknown (from Technical Context) | Resolution |
@@ -253,5 +324,7 @@ re-decided here.
 | SQLite backup (C1) | scripted off-host backup + documented restore (D11) |
 | MQTT / history | deferred to separate features; persistence kept decoupled & query-friendly (D12) |
 | Capture scope (dashboard subset vs. all fields) | **Store all gateway fields** as a full metric map; dashboard is a projection — acknowledged YAGNI deviation (D13) |
+| Sky-condition icon source | **NWS current conditions** (`api.weather.gov`), cached + mapped; greyed stale fallback — offline-first not offline-only, Optional External Enrichment (D14) |
+| Gateway field mapping (rain/pressure/wind/daily) | **Device-verified capture is canonical**: rain from `piezoRain` (not `rain`), pressure from `wh25`, wind in `common_list`; day high/low, 10-min avg wind, max-gust direction **derived from stored history** (D15) |
 
 All NEEDS CLARIFICATION items are resolved. Proceed to Phase 1 design.

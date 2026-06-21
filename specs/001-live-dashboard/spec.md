@@ -74,15 +74,53 @@ section so the two stay traceable without copying detail.
 - Q: When does a panel become Stale? → A: When the latest reading's observation
   time is older than three times (3×) the ingestion poll cadence.
 - Q: How is the sky-condition icon derived (so US6 is objectively testable)? → A:
-  Deterministic ordered rules — Night (before sunrise / after sunset) → Rainy
-  (hourly rain rate > 0) → Clear (daytime, no rain, solar ≥ 500 W/m²) → Cloudy
-  (daytime, no rain, solar < 500 W/m²).
+  **(superseded — see Session 2026-06-21 (b))** Originally deterministic ordered
+  rules from the local reading (Night → Rainy → Clear → Cloudy on solar ≥ 500 W/m²).
+  Replaced because local sensors cannot faithfully classify sky condition.
 - Q: Source of day high/low temperature, 10-minute average wind, and max daily
-  gust? → A: Taken from the gateway's daily-aggregate fields as-is; the application
-  does not recompute them from stored history for this feature.
+  gust? → A: **(superseded — see Session 2026-06-21 (c))** Originally assumed the
+  gateway supplied all of these as daily-aggregate fields taken as-is. Device-
+  verified capture showed the gateway supplies only the max daily gust **speed**;
+  day high/low, the 10-minute average wind, and the max-gust **direction** are
+  **derived from the application's own stored history**.
 - Q: What does the barometer show before 3 hours of history exist? → A: An explicit
   "trend unavailable" state (neutral, no arrow, no delta), never a fabricated steady
   or zero-delta trend.
+
+### Session 2026-06-21 (b)
+
+- Q: Where does the sky-condition icon come from? → A: From the **NWS
+  current-conditions API** for the household location (the local sensors can't
+  faithfully classify sky condition). The API service fetches + caches the latest
+  NWS observation and maps it to the icon vocabulary. "Offline-first" is not
+  "offline-only": when NWS is unreachable or its last good fetch is stale, the icon
+  greys out (stale) over the last-known value; it never blocks the core slice and is
+  never fabricated. This supersedes the earlier deterministic-local-rule answer and
+  required a constitution amendment (v2.1.0, Optional External Enrichment).
+
+### Session 2026-06-21 (c) — device-verified gateway payload
+
+> The household GW2000B was queried directly (`GET /get_livedata_info`, HTTP 200)
+> during an active rainstorm. The **live device payload is the Source of Truth**;
+> vendor documentation is a proxy and is not canonical. Findings below correct
+> earlier assumptions encoded in the spec.
+
+- Q: Where does rainfall data come from? → A: From the **WS90 haptic gauge
+  (`piezoRain`)**, not the legacy tipping-bucket (`rain`). In the live capture every
+  tipping-bucket total read `0.00 in` *during real rain* while `piezoRain` reported
+  the true accumulation. The panel is still **labelled "Rain"** in the UI; only the
+  data source changes. (This dead-tipping-bucket failure is the reason the project
+  exists.) Supersedes any implication that rain comes from the `rain` category.
+- Q: Where does barometric pressure come from? → A: From the **`wh25`** category
+  (`abs`/`rel`, in inHg → hPa), not `common_list`.
+- Q: Source of day high/low temperature, 10-minute average wind, and max-gust
+  direction? → A: **Derived from the application's own stored history** (the gateway
+  does not report them): day high/low = max/min outdoor temp since local midnight;
+  10-minute average wind = rolling mean of polled wind speed; max-gust direction =
+  wind direction recorded at the largest gust observed since local midnight. Only
+  the max daily gust **speed** (`common_list 0x19`) is taken from the gateway as-is.
+  Supersedes Session 2026-06-21 item "Taken from the gateway's daily-aggregate
+  fields as-is".
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -278,9 +316,13 @@ the condition icon reflects it.
    panel renders, **Then** it shows a falling indicator (↓) and the delta.
 4. **Given** pressure is essentially unchanged over the trend window, **When** the
    barometer panel renders, **Then** it shows a steady indicator.
-5. **Given** a daytime reading with no active rainfall and solar radiation of
-   540 W/m² (at or above the 500 W/m² clear-sky threshold), **When** the dashboard
-   renders, **Then** the current-condition icon shows the clear/sunny state.
+5. **Given** the NWS current-conditions API reports a clear sky for the household
+   location, **When** the dashboard renders, **Then** the current-condition icon
+   shows the clear state.
+6. **Given** the NWS feed is unreachable or its last successful fetch is older than
+   the configured staleness window, **When** the dashboard renders, **Then** the
+   condition icon is shown **greyed-out (stale)** over the last-known icon (or a
+   neutral icon if none has been fetched) and no other panel is affected.
 
 ---
 
@@ -527,12 +569,17 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
 - **FR-018a**: The wind direction MUST be shown on a compass-style gauge using a
   **rim marker** rotated to the bearing (not a full-diameter needle), positioned so
   it never overlaps the center readout.
-- **FR-018b**: The day's high/low outdoor temperature (FR-010), the 10-minute
-  average wind (FR-017), and the maximum daily gust (FR-018) MUST be taken from the
-  gateway's corresponding daily-aggregate / averaged fields as supplied in each
-  reading (the gateway resets its daily aggregates at local midnight). The
-  application MUST NOT recompute these from stored history for this feature; it
-  surfaces the gateway-provided values as-is.
+- **FR-018b**: The maximum daily gust **speed** (FR-018) MUST be taken from the
+  gateway's corresponding field as supplied in each reading (the gateway resets it at
+  local midnight). The day's high/low outdoor temperature (FR-010), the 10-minute
+  average wind speed (FR-017), and the max daily gust **direction** (FR-018) are
+  **NOT** supplied by the gateway and MUST be **derived by the application from its
+  own stored reading history**: day high/low = max/min outdoor temperature since the
+  most recent local (`America/New_York`) midnight; 10-minute average wind = rolling
+  mean of polled wind speed over the trailing 10 minutes; max-gust direction = the
+  wind direction recorded at the largest gust observed since local midnight. Where
+  insufficient history exists, the value falls back to the current reading's
+  instantaneous equivalent rather than a fabricated zero.
 
 #### Solar & Sky
 
@@ -586,19 +633,23 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   trend window (FR-032), the system MUST represent the trend as explicitly
   **unavailable** (neutral indicator, no arrow, no delta) rather than reporting a
   steady or zero-delta trend, and the UI MUST render that "trend unavailable" state.
-- **FR-033**: The barometer panel MUST carry a sky-condition icon derived
-  deterministically from the latest reading (no external forecast service), using
-  these ordered rules:
-  - **Night** (moon icon): the current Eastern time is before sunrise or after
-    sunset.
-  - **Rainy** (rain icon): it is daytime and the hourly rain rate is greater than 0.
-  - **Clear** (sun icon): it is daytime, not raining, and solar radiation is at or
-    above the configured clear-sky threshold (default **500 W/m²**).
-  - **Cloudy** (cloud icon): it is daytime, not raining, and solar radiation is
-    below the clear-sky threshold.
-
-  The mapping MUST be a pure function of the snapshot so the same reading always
-  yields the same icon; the clear-sky threshold is configurable.
+- **FR-033**: The barometer panel MUST carry a current sky-condition icon sourced
+  from the **National Weather Service (NWS) current-conditions API**
+  (`api.weather.gov`) for the household location — a complex classification the
+  local sensors cannot reproduce faithfully. The API service fetches the latest NWS
+  observation for the configured location, maps it (incl. NWS day/night) to the
+  application's condition-icon vocabulary, caches the result, and exposes it to the
+  web client, which renders the icon. The NWS→icon mapping MUST be a pure,
+  unit-tested function.
+  - **Graceful degradation (offline-first, not offline-only)**: when NWS is
+    unreachable, times out, or its last successful fetch is older than the
+    configured staleness window, the icon MUST render in a **stale (greyed-out)**
+    state over the last-known icon (or a neutral icon if none has ever been
+    fetched). A missing NWS feed MUST NOT crash the service, block sensor
+    ingestion/serving, or fabricate a condition — it only greys this single,
+    non-headline icon.
+  - **Testability (FR-057)**: NWS access MUST sit behind an injectable client so
+    automated tests use mocked responses only and never reach the network.
 
 #### Liveness, data freshness & resilience
 
@@ -717,7 +768,11 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   example template MUST document the required values.
 - **FR-056**: The full slice (ingestion poller, store, API, and UI) MUST run
   self-hosted as containers with **no cloud dependency** and MUST keep collecting
-  and serving data with no internet connectivity.
+  and serving data with no internet connectivity. The NWS-sourced sky-condition
+  icon (FR-033) is the one permitted **optional online enrichment**; when the
+  internet or NWS is unavailable it MUST degrade to a greyed stale state and MUST
+  NOT prevent the core slice from collecting, storing, serving, or displaying
+  sensor data.
 - **FR-057**: The slice MUST be developed test-first to **100% coverage**, and all
   automated tests MUST use mock or synthetic data only — they MUST NOT depend on
   the gateway, the network, or any external service being reachable.
@@ -729,10 +784,11 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   wind speed/direction/gust, 10-minute average wind, max daily gust (direction +
   speed), solar radiation, UV index, indoor temperature, indoor humidity, rainfall
   totals (event/hourly/daily/weekly/monthly/yearly), absolute barometric pressure,
-  current-condition signal, and the observation time of the reading.
-- **Daily Extremes**: The day's high and low outdoor temperature and the day's max
-  gust, taken from the gateway's daily-aggregate fields (reset at local midnight)
-  and used by the outdoor ring and wind panel.
+  and the observation time of the reading.
+- **Daily Extremes**: The day's high and low outdoor temperature and the max daily
+  gust direction, **derived by the application from its own stored history** since
+  local midnight; the gateway supplies the max daily gust speed as-is. Used by the
+  outdoor ring and wind panel.
 - **Astronomical Data**: Sunrise time, sunset time, and moon phase for the current
   date and location, used by the Solar & Sky panel and to interpolate the sun's
   current arc position.
@@ -843,15 +899,23 @@ Also out of scope for this feature:
   (the deployment site) and the current date; the location is a configured
   constant for this single-household deployment.
 - The barometer panel's "absolute" pressure refers to the gateway's absolute
-  (station) pressure reading, in hPa, as supplied by the gateway and stored by the
-  ingestion service.
+  (station) pressure reading, taken from the gateway's `wh25` category (reported in
+  inHg) and normalised to hPa by the ingestion service before storage.
 - The barometric trend is computed over a **3-hour** window and the per-panel
   freshness threshold is three times the ingestion poll cadence (Stale at > 3×);
   the poll cadence is configurable and defaults to 30 s (valid range 30–60 s), and
   the client UI refresh cadence is configurable and defaults to 10 s.
-- The current-condition icon is derived from available readings/signals (e.g.,
-  solar radiation, time of day, and any condition field exposed by the gateway); a
-  full meteorological forecast engine is out of scope.
+- The current-condition icon is **sourced from the NWS current-conditions API**
+  (`api.weather.gov`) for the household location and mapped to the app's icon
+  vocabulary; it greys out (stale) when NWS is unreachable and never blocks the core
+  slice (FR-033). It is **not** derived from local sensor readings — the local
+  sensors cannot faithfully classify sky condition.
+- Rainfall totals are sourced from the **WS90 haptic gauge (`piezoRain`)**, not the
+  legacy tipping-bucket (`rain`) category, which reads zero during real rain on this
+  deployment (device-verified). The UI panel is still labelled "Rain".
+- Day high/low outdoor temperature, the 10-minute average wind speed, and the max
+  daily gust direction are **derived by the API from stored history** (the gateway
+  does not report them); only the max daily gust speed is taken from the gateway.
 - In-app page navigation lives in the header hamburger menu; History / Trends /
   Records / Settings are placeholders for future features and define no behavior
   here (YAGNI).
