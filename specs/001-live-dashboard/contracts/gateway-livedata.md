@@ -44,9 +44,9 @@ Categories observed on this device and how they map to the snapshot:
 
 | Category | Observed fields (id → meaning) | Maps to snapshot |
 |----------|-------------------------------|------------------|
-| `common_list` | `0x02` outdoor temp °F · `0x07` outdoor RH % · `"3"` feels-like/apparent temp °F¹ · `0x03` dewpoint °F · `0x0B` wind mph · `0x0C` gust mph · `0x19` max **daily** gust mph · `0x0A` wind dir ° · `0x15` solar W/m² · `0x17` UVI · `"5"` VPD kPa (extra) · `0x6D` (10-min avg wind dir?)¹ | `outdoorTempF`, `outdoorHumidityPct`, `feelsLikeF`, `dewpointF`, `windMph`, `gustMph`, `maxDailyGustMph`, `windDirDeg`, `solarWm2`, `uvIndex` |
+| `common_list` | `0x02` outdoor temp °F · `0x07` outdoor RH % · `"3"` feels-like/apparent temp °F¹ · `0x03` dewpoint °F · `0x0B` wind mph · `0x0C` gust mph · `0x19` max **daily** gust mph · `0x0A` wind dir ° · `0x15` solar W/m² · `0x17` UVI · `"5"` VPD kPa (extra) · `0x6D` 10-min avg wind dir °¹ | `outdoorTempF`, `outdoorHumidityPct`, `feelsLikeF`, `dewpointF`, `windMph`, `gustMph`, `maxDailyGustMph`, `windDirDeg`, `solarWm2`, `uvIndex`, `windAvg10mDirDeg` |
 | `wh25` (indoor + barometer) | `intemp` indoor temp °F · `inhumi` indoor RH % · `abs` absolute pressure (inHg) · `rel` relative pressure (inHg) | `indoorTempF`, `indoorHumidityPct`, `pressureHpa` (from `abs`, inHg→hPa) |
-| `piezoRain` (WS90 haptic gauge) — **the real rain source** | `srain_piezo` flag · `0x0D` event · `0x0E` rate · `0x7C` hourly · `0x10` daily · `0x11` weekly · `0x12` monthly · `0x13` yearly (+ ws90 battery/cap/firmware) | `rainEventIn`, `rainHourlyIn`, `rainDailyIn`, `rainWeeklyIn`, `rainMonthlyIn`, `rainYearlyIn` |
+| `piezoRain` (WS90 haptic gauge) — **the real rain source** | `srain_piezo` flag · `0x0D` event · `0x0E` rate · `0x7C` hourly · `0x10` daily · `0x11` weekly · `0x12` monthly · `0x13` yearly (+ ws90 battery/cap/firmware) | `rainEventIn`, `rainHourlyIn`, `rainDailyIn`, `rainWeeklyIn`, `rainMonthlyIn`, `rainYearlyIn`, `rainRateInHr`, `isRaining` |
 | `rain` (legacy tipping bucket) | same id set as `piezoRain` | **NOT used** (see below) |
 | `debug` | heap, runtime, usr_interval, is_cnip | captured into `FullMetricMap` only |
 
@@ -81,7 +81,10 @@ best-evidence and **confirmed at implementation** against a fresh capture.
 >   not its direction).
 >
 > Only the max daily gust **speed** (`maxDailyGustMph`, `common_list 0x19`) is taken
-> from the gateway as-is.
+> from the gateway as-is. The 10-minute average wind **direction**
+> (`windAvg10mDirDeg`, `common_list 0x6D`), the rain **rate** (`rainRateInHr`,
+> `piezoRain 0x0E`), and the **raining-now** flag (`isRaining`, `piezoRain
+> srain_piezo`) are likewise gateway-supplied and projected as-is — not derived.
 
 ## Unit normalisation
 

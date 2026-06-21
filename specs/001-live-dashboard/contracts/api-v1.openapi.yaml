@@ -46,6 +46,7 @@ paths:
                       windDirDeg: 45
                       gustMph: 14.0
                       windAvg10mMph: 6.0
+                      windAvg10mDirDeg: 120
                       maxDailyGustMph: 22.0
                       maxDailyGustDir: "W"
                       solarWm2: 540.0
@@ -58,6 +59,8 @@ paths:
                       rainWeeklyIn: 0.12
                       rainMonthlyIn: 1.85
                       rainYearlyIn: 22.40
+                      rainRateInHr: 0.00
+                      isRaining: false
                       pressureHpa: 1013.0
                     astro:
                       sunriseUtc: "2026-06-21T09:25:00Z"
@@ -142,9 +145,10 @@ components:
       required:
         [observedAt, outdoorTempF, feelsLikeF, dewpointF, outdoorHumidityPct,
          dayHighF, dayLowF, windMph, windDirDeg, gustMph, windAvg10mMph,
-         maxDailyGustMph, maxDailyGustDir, solarWm2, uvIndex, indoorTempF,
-         indoorHumidityPct, rainEventIn, rainHourlyIn, rainDailyIn, rainWeeklyIn,
-         rainMonthlyIn, rainYearlyIn, pressureHpa]
+         windAvg10mDirDeg, maxDailyGustMph, maxDailyGustDir, solarWm2, uvIndex,
+         indoorTempF, indoorHumidityPct, rainEventIn, rainHourlyIn, rainDailyIn,
+         rainWeeklyIn, rainMonthlyIn, rainYearlyIn, rainRateInHr, isRaining,
+         pressureHpa]
       properties:
         observedAt: { type: string, format: date-time }
         outdoorTempF: { type: number }
@@ -157,6 +161,7 @@ components:
         windDirDeg: { type: number, minimum: 0, maximum: 360 }
         gustMph: { type: number, minimum: 0 }
         windAvg10mMph: { type: number, minimum: 0 }
+        windAvg10mDirDeg: { type: number, minimum: 0, maximum: 360 }
         maxDailyGustMph: { type: number, minimum: 0 }
         maxDailyGustDir: { type: string }
         solarWm2: { type: number, minimum: 0 }
@@ -169,6 +174,8 @@ components:
         rainWeeklyIn: { type: number, minimum: 0 }
         rainMonthlyIn: { type: number, minimum: 0 }
         rainYearlyIn: { type: number, minimum: 0 }
+        rainRateInHr: { type: number, minimum: 0 }
+        isRaining: { type: boolean }
         pressureHpa: { type: number, minimum: 0 }
     AstronomicalData:
       type: object

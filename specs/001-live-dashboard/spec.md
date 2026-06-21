@@ -564,6 +564,10 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   point (e.g., N, NE) together with the bearing in degrees.
 - **FR-016**: The wind panel MUST display the current gust in mph.
 - **FR-017**: The wind panel MUST display the 10-minute average wind speed in mph.
+- **FR-017a**: The wind panel MUST pair the 10-minute average wind speed (FR-017)
+  with the 10-minute average wind **direction** shown as a cardinal point. Unlike
+  the average speed, the average direction **is** supplied by the gateway
+  (`common_list 0x6D`) and MUST be taken from each reading as-is, not derived.
 - **FR-018**: The wind panel MUST display the maximum daily gust as a direction
   plus speed (mph).
 - **FR-018a**: The wind direction MUST be shown on a compass-style gauge using a
@@ -579,7 +583,9 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   mean of polled wind speed over the trailing 10 minutes; max-gust direction = the
   wind direction recorded at the largest gust observed since local midnight. Where
   insufficient history exists, the value falls back to the current reading's
-  instantaneous equivalent rather than a fabricated zero.
+  instantaneous equivalent rather than a fabricated zero. The 10-minute average wind
+  **direction** (FR-017a) is the exception — it **is** supplied by the gateway
+  (`common_list 0x6D`) and is used as-is.
 
 #### Solar & Sky
 
@@ -620,6 +626,11 @@ surface (eventually flipping to Stale) until a valid poll succeeds.
   day, while the numeric Daily Rain total continues to show the true value.
 - **FR-029**: The rainfall panel MUST prominently display the Daily Rain total and
   also display Event, Hourly, Weekly, Monthly, and Yearly totals.
+- **FR-029a**: The rainfall panel MUST display the current rain **rate** in in/hr,
+  sourced from the piezo gauge (`piezoRain 0x0E`).
+- **FR-029b**: The rainfall panel MUST show a **"raining now"** indicator when the
+  gateway's piezo rain flag (`piezoRain srain_piezo`) is set, and hide it when the
+  flag is clear.
 - **FR-030**: All rainfall totals MUST be displayed in inches.
 
 #### Barometer & condition

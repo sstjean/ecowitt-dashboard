@@ -67,6 +67,7 @@ successful poll. (Stored within the full map; surfaced via the API.)
 | `windDirDeg` | number (0–360) | ° | Bearing (FR-015/FR-018a); `common_list 0x0A`. |
 | `gustMph` | number | mph | Current gust (FR-016); `common_list 0x0C`. |
 | `windAvg10mMph` | number | mph | **Derived** by the API: rolling mean of stored `windMph` over the last 10 min — gateway does not supply (FR-017/FR-018b, §7b). |
+| `windAvg10mDirDeg` | number (0–360) | ° | Gateway 10-min average wind **direction**, as-is; `common_list 0x6D` (FR-017a). Paired in the UI with the derived `windAvg10mMph`. |
 | `maxDailyGustMph` | number | mph | Gateway daily max gust **speed**, as-is; `common_list 0x19` (FR-018). |
 | `maxDailyGustDir` | string (cardinal) | — | **Derived** by the API: wind direction at the largest gust observed since local midnight — gateway supplies the speed but not the direction (FR-018/FR-018b, §7b). |
 | `solarWm2` | number | W/m² | Solar radiation (FR-019). |
@@ -79,6 +80,8 @@ successful poll. (Stored within the full map; surfaced via the API.)
 | `rainWeeklyIn` | number | in | (FR-029); `piezoRain 0x11`. |
 | `rainMonthlyIn` | number | in | (FR-029); `piezoRain 0x12`. |
 | `rainYearlyIn` | number | in | (FR-029); `piezoRain 0x13`. |
+| `rainRateInHr` | number | in/hr | Current rain rate (FR-029a); `piezoRain 0x0E`. |
+| `isRaining` | boolean | — | "Raining now" flag (FR-029b); `piezoRain srain_piezo` (non-zero ⇒ true). |
 | `pressureHpa` | number | hPa | Absolute/station pressure (FR-031); from `wh25.abs` (inHg→hPa). |
 
 > **Rain is sourced from `piezoRain` (the WS90 haptic gauge), never the legacy `rain`
@@ -92,8 +95,9 @@ successful poll. (Stored within the full map; surfaced via the API.)
 > (§7b) and merges them into the projected snapshot.
 
 - **Validation rules**: every numeric field finite and within physical bounds
-  (e.g., humidity 0–100, windDirDeg 0–360, non-negative rainfall/solar/uv). Out-of-
-  bounds ⇒ the whole reading is rejected at ingestion.
+  (e.g., humidity 0–100, windDirDeg/windAvg10mDirDeg 0–360, non-negative
+  rainfall/rate/solar/uv); `isRaining` is a boolean. Out-of-bounds ⇒ the whole
+  reading is rejected at ingestion.
 - **State**: immutable once written. Never overwritten; newest `observedAt` wins.
 
 ## 4. StoredReading (persistence — full-fidelity)

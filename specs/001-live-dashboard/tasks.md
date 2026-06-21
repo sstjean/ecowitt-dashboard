@@ -63,11 +63,11 @@ on these.
 
 ### Shared model (`packages/shared`)
 
-- [ ] T008 [P] Test: zod schemas in `packages/shared/tests/schema.test.ts` — `FullMetricMap`, `LiveReadingSnapshot` (all 24 fields + bounds: humidity 0–100, windDirDeg 0–360, non-negative rain/solar/uv), `GatewayResponse`, `LatestSnapshot`/`Health` (assert against `contracts/api-v1.openapi.yaml` shapes), incl. rejection of out-of-bounds values (data-model.md §2/§3).
-- [ ] T009 [P] Test: `packages/shared/tests/mapping.test.ts` — gateway payload → `FullMetricMap` (full-fidelity: extras preserved, unknown-unit fields kept as-is), unit normalisation (°C→°F, m/s→mph, mm→in, inHg→hPa), and the curated `LiveReadingSnapshot` projection using the **device-verified** field map: rain totals from `piezoRain` (NOT `rain`), `pressureHpa` from `wh25.abs` (inHg→hPa), wind/gust/dir + max-daily-gust speed from `common_list`; required-field-missing ⇒ reject (gateway-livedata.md).
+- [ ] T008 [P] Test: zod schemas in `packages/shared/tests/schema.test.ts` — `FullMetricMap`, `LiveReadingSnapshot` (all 27 fields + bounds: humidity 0–100, windDirDeg/windAvg10mDirDeg 0–360, non-negative rain/rate/solar/uv, `isRaining` boolean), `GatewayResponse`, `LatestSnapshot`/`Health` (assert against `contracts/api-v1.openapi.yaml` shapes), incl. rejection of out-of-bounds values (data-model.md §2/§3).
+- [ ] T009 [P] Test: `packages/shared/tests/mapping.test.ts` — gateway payload → `FullMetricMap` (full-fidelity: extras preserved, unknown-unit fields kept as-is), unit normalisation (°C→°F, m/s→mph, mm→in, inHg→hPa), and the curated `LiveReadingSnapshot` projection using the **device-verified** field map: rain totals + rate (`0x0E`) + raining-now flag (`srain_piezo`) from `piezoRain` (NOT `rain`), `pressureHpa` from `wh25.abs` (inHg→hPa), wind/gust/dir + max-daily-gust speed + 10-min avg wind dir (`0x6D`) from `common_list`; required-field-missing ⇒ reject (gateway-livedata.md).
 - [ ] T010 [P] Test: `packages/shared/tests/freshness.test.ts` — Fresh / Stale (observedAt older than 3× poll cadence) / Missing derivation (data-model.md §8, FR-035).
 - [ ] T011 Implement `packages/shared/src/schema.ts` (zod `FullMetricMap`, `LiveReadingSnapshot`, `GatewayResponse`, `LatestSnapshot`, `Health` + inferred types) to pass T008.
-- [ ] T012 Implement `packages/shared/src/mapping.ts` (payload→FullMetricMap normalise/convert + curated projection of **instantaneous** fields per the device-verified map — rain from `piezoRain`, pressure from `wh25`, wind from `common_list`; the derived daily aggregates `dayHighF`/`dayLowF`/`windAvg10mMph`/`maxDailyGustDir` are NOT set here — they are added API-side from history, T049a; pure unit-conversion helpers) to pass T009 (depends on T011).
+- [ ] T012 Implement `packages/shared/src/mapping.ts` (payload→FullMetricMap normalise/convert + curated projection of **instantaneous** fields per the device-verified map — rain totals + rate + raining-now flag from `piezoRain`, pressure from `wh25`, wind + 10-min avg wind dir from `common_list`; the derived daily aggregates `dayHighF`/`dayLowF`/`windAvg10mMph`/`maxDailyGustDir` are NOT set here — they are added API-side from history, T049a; pure unit-conversion helpers) to pass T009 (depends on T011).
 - [ ] T013 Implement `packages/shared/src/freshness.ts` (Fresh/Stale/Missing) to pass T010.
 - [ ] T014 Export the shared surface from `packages/shared/src/index.ts` (schema, mapping, freshness).
 
@@ -194,7 +194,7 @@ ingest one reading and confirm panels transition Missing → Fresh.
 ## Phase 6: User Story 2 - Read the wind at a glance (Priority: P2) — Issue #5
 
 **Goal**: Compass panel showing current speed (mph), cardinal + bearing, current gust,
-10-minute average, and max daily gust (direction + speed), using a rim marker.
+10-minute average (speed + direction), and max daily gust (direction + speed), using a rim marker.
 
 **Independent Test**: Render with wind 8 mph from 45°, gust 14, 10-min avg 6, max daily
 gust 22 from W; confirm 8 mph, "NE / 45°", gust 14, avg 6, and max-daily-gust 22 "W";
@@ -202,11 +202,11 @@ due-north renders the marker at N (0°/360°).
 
 ### Tests (write first, must fail)
 
-- [ ] T055 [P] [US2] Test: `apps/web/tests/render/windCompass.test.ts` — speed/gust/avg/max-daily-gust readouts + cardinal-from-degrees mapping + rim marker rotation; 0 mph renders calm with no misleading direction (FR-014–FR-018b, edge case).
+- [ ] T055 [P] [US2] Test: `apps/web/tests/render/windCompass.test.ts` — speed/gust/avg (speed + cardinal direction)/max-daily-gust readouts + cardinal-from-degrees mapping + rim marker rotation; 0 mph renders calm with no misleading direction (FR-014–FR-018b incl. FR-017a, edge case).
 
 ### Implementation
 
-- [ ] T056 [US2] Implement `apps/web/src/render/windCompass.ts` (compass gauge, rim marker, cardinal/bearing, gust/avg/max-gust readouts) and wire into the left column to pass T055.
+- [ ] T056 [US2] Implement `apps/web/src/render/windCompass.ts` (compass gauge, rim marker, cardinal/bearing, gust/avg (speed + cardinal direction)/max-gust readouts) and wire into the left column to pass T055.
 
 **Checkpoint**: Wind panel renders independently from a snapshot.
 
@@ -216,7 +216,7 @@ due-north renders the marker at N (0°/360°).
 
 **Goal**: A droplet that fills proportionally to the daily total (full-scale 4.0 in,
 clamped, colour-escalating over cap) plus Event / Hourly / Daily / Weekly / Monthly /
-Yearly totals in inches, Daily most prominent.
+Yearly totals in inches (Daily most prominent), a rain rate (in/hr), and a "raining now" indicator.
 
 **Independent Test**: 0.00 in ⇒ empty droplet; = cap ⇒ full; between ⇒ proportional;
 over cap ⇒ full + colour escalation while the true total still shows; all six totals in
@@ -224,11 +224,11 @@ inches.
 
 ### Tests (write first, must fail)
 
-- [ ] T057 [P] [US3] Test: `apps/web/tests/render/rainfall.test.ts` — droplet fill fraction vs `RAIN_FULL_SCALE_IN` (empty / partial / full / clamped-over-cap with blue→amber→red escalation) and all six totals rendered in inches (FR-027–FR-030, FR-028a).
+- [ ] T057 [P] [US3] Test: `apps/web/tests/render/rainfall.test.ts` — droplet fill fraction vs `RAIN_FULL_SCALE_IN` (empty / partial / full / clamped-over-cap with blue→amber→red escalation), all six totals rendered in inches, the rain **rate** in in/hr, and the **raining-now** indicator shown only when the piezo flag is set (FR-027–FR-030, FR-028a, FR-029a, FR-029b).
 
 ### Implementation
 
-- [ ] T058 [US3] Implement `apps/web/src/render/rainfall.ts` (droplet fill + clamp + colour escalation + six totals — all six sourced from the `piezoRain` gauge upstream, T012; the panel is still **labelled "Rain"**) and wire into the right column to pass T057.
+- [ ] T058 [US3] Implement `apps/web/src/render/rainfall.ts` (droplet fill + clamp + colour escalation + six totals + rain rate (in/hr) + a "raining now" indicator — all sourced from the `piezoRain` gauge upstream, T012; the panel is still **labelled "Rain"**) and wire into the right column to pass T057.
 
 **Checkpoint**: Rainfall panel renders independently from a snapshot.
 
