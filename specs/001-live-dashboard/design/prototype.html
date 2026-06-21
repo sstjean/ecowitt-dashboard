@@ -157,6 +157,16 @@ body {
 .rain-grid { display: grid; grid-template-columns: 1fr; gap: 0 14px; margin-left: 18px; }
 .rain-grid .rr { display: flex; justify-content: space-between; font-size: 15px; padding: 2px 0; border-bottom: 1px dashed var(--cp-border); }
 .rain-grid .rr span:first-child { color: var(--cp-text-muted); }
+/* "Raining now" live badge (piezo srain flag) + rain-rate readout */
+.rain-now { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px;
+  font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--cp-link); vertical-align: middle; }
+.rain-now[hidden] { display: none; }
+.rain-now .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cp-link);
+  animation: rainpulse 1.4s ease-in-out infinite; }
+@keyframes rainpulse { 0%,100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.15); } }
+.rain-rate { font-size: 12px; color: var(--cp-text-soft); margin-top: 4px; }
+.rain-rate .rrv { font-weight: 600; color: var(--cp-text); }
 
 /* ---------- Solar & Sky ---------- */
 /* The arc spans the FULL card width; readouts overlay it so they align with the
@@ -417,7 +427,7 @@ body {
 
     <!-- Rainfall -->
     <section class="card rain" id="card-rain">
-      <h3 class="inline">Rainfall</h3>
+      <h3 class="inline">Rainfall <span class="rain-now" id="rainNow" hidden><span class="dot"></span>Raining now</span></h3>
       <div class="rain-body">
         <div class="drop-wrap">
           <svg class="drop-svg" viewBox="0 0 100 130">
@@ -432,6 +442,7 @@ body {
         <div class="rain-main">
           <div class="rv"><span id="rainDaily">--</span><span class="u"> in</span></div>
           <div class="rl">Daily Rain</div>
+          <div class="rain-rate"><span class="rrv" id="rainRate">--</span> in/hr</div>
         </div>
         <div class="rain-grid">
           <div class="rr"><span>Event</span><span id="rEvent">--</span></div>
@@ -483,6 +494,7 @@ body {
   <div class="ctrl"><label>Outdoor temp <span id="cTempV">78°F</span></label><input type="range" id="cTemp" min="18" max="103" value="78" step="1"></div>
   <div class="ctrl"><label>Today's rain <span id="cRainV">0.42 in</span></label><input type="range" id="cRain" min="0" max="8" value="0.42" step="0.01"></div>
   <div class="ctrl"><label>Wind direction <span id="cDirV">24°</span></label><input type="range" id="cDir" min="0" max="359" value="24" step="1"></div>
+  <div class="ctrl"><label class="toggle"><input type="checkbox" id="cRaining" checked> Simulate raining now</label></div>
   <div class="ctrl"><label class="toggle"><input type="checkbox" id="cStale"> Simulate stale / missing (Indoor)</label></div>
 </div>
 
@@ -494,9 +506,10 @@ body {
 
   const data = {
     outTemp: 77.9, outHi: 82.4, outLo: 64.1, feels: 79.1, dew: 62.4, hum: 59,
-    windSpd: 3.4, windDir: 24, windGust: 8.1, wind10: 2.9, windMaxGust: 15.6, windMaxDir: "NW",
+    windSpd: 3.4, windDir: 24, windGust: 8.1, wind10: 2.9, wind10DirDeg: 121, windMaxGust: 15.6, windMaxDir: "NW",
     inTemp: 73.2, inHum: 48,
     rainDaily: 0.42, rEvent: 0.42, rHour: 0.04, rWeek: 1.12, rMonth: 3.27, rYear: 18.65, rainCapacity: 4.0,
+    rainRate: 0.04, isRaining: true,
     solar: 642, uv: 6, press: 1003.5, baroDelta: 0.4,
     sunrise: "5:49 AM", sunset: "8:34 PM", sunriseMin: 5*60+49, sunsetMin: 20*60+34
   };
@@ -589,7 +602,7 @@ body {
     setTempRing("feelsGrad","feelsRing",data.feels);
 
     set("windSpd",data.windSpd.toFixed(1)); set("windDir",dirCardinal(data.windDir)); set("windDeg",Math.round(data.windDir));
-    set("windGust",data.windGust.toFixed(1)+" mph"); set("wind10",data.wind10.toFixed(1)); set("windMax",data.windMaxDir+" "+data.windMaxGust.toFixed(1));
+    set("windGust",data.windGust.toFixed(1)+" mph"); set("wind10",dirCardinal(data.wind10DirDeg)+" "+data.wind10.toFixed(1)); set("windMax",data.windMaxDir+" "+data.windMaxGust.toFixed(1));
     $("windNeedle").setAttribute("transform",`rotate(${data.windDir} 100 100)`);
 
     // Indoor (tertiary) — shares outdoor temp scale (design-language §5.3)
@@ -604,6 +617,7 @@ body {
     }
 
     set("rainDaily",data.rainDaily.toFixed(2));
+    set("rainRate",data.rainRate.toFixed(2)); $("rainNow").hidden=!data.isRaining;
     set("rEvent",data.rEvent.toFixed(2)+" in"); set("rHour",data.rHour.toFixed(2)+" in");
     set("rWeek",data.rWeek.toFixed(2)+" in"); set("rMonth",data.rMonth.toFixed(2)+" in"); set("rYear",data.rYear.toFixed(2)+" in");
     // Droplet full-scale = data.rainCapacity (engineered 4.0 in cap). Sourced
@@ -656,6 +670,7 @@ body {
   $("cTemp").addEventListener("input",(e)=>{data.outTemp=+e.target.value;$("cTempV").textContent=Math.round(data.outTemp)+"°F";render();});
   $("cRain").addEventListener("input",(e)=>{data.rainDaily=+e.target.value;data.rEvent=data.rainDaily;$("cRainV").textContent=data.rainDaily.toFixed(2)+" in";render();});
   $("cDir").addEventListener("input",(e)=>{data.windDir=+e.target.value;$("cDirV").textContent=data.windDir+"°";render();});
+  $("cRaining").addEventListener("change",(e)=>{data.isRaining=e.target.checked; data.rainRate=e.target.checked?0.54:0; render();});
   $("cStale").addEventListener("change",render);
 
   render(); tickClock(); tickSun();
