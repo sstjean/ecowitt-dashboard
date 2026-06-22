@@ -296,11 +296,11 @@ indoor temp ring follows the same visible-spectrum scale across refreshes.
 
 ### Tests (write first, must fail)
 
-- [ ] T070 [P] [US5] Test: `apps/web/tests/render/indoorRings.test.ts` — indoor temperature ring (°F, shared `tempScale`) and indoor humidity ring (%) as smaller secondary dials (FR-024/FR-025/FR-026/FR-026a).
+- [X] T070 [P] [US5] Test: `apps/web/tests/render/indoorRings.test.ts` — indoor temperature ring (°F, shared `tempScale`) and indoor humidity ring (%) as smaller secondary dials (FR-024/FR-025/FR-026/FR-026a).
 
 ### Implementation
 
-- [ ] T071 [US5] Implement `apps/web/src/render/indoorRings.ts` (indoor temp + humidity rings) and wire into the right column to pass T070 (depends on T036).
+- [X] T071 [US5] Implement `apps/web/src/render/indoorRings.ts` (indoor temp + humidity rings) and wire into the right column to pass T070 (depends on T036).
 
 **Checkpoint**: Indoor rings render independently from a snapshot.
 

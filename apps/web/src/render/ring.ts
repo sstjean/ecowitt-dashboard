@@ -8,6 +8,10 @@ export interface TempRing {
   center: HTMLElement;
 }
 
+/** Ring geometry shared by every dial (SVG user units). */
+export const RING_RADIUS = 86;
+export const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
 /**
  * Build a closed full-gradient temperature ring whose stroke colour encodes the
  * value via the §5.3 scale. Shared by the outdoor and Feels Like rings so the
@@ -38,6 +42,40 @@ export function buildTempRing(
       cy: "100",
       r: "86",
       stroke: `url(#${gradientId})`,
+    }),
+  );
+  const center = el(doc, "div", { class: "ring-center" });
+  const wrap = el(doc, "div", { class: "ring-wrap" }, svg, center);
+  return { wrap, center };
+}
+
+/**
+ * Build a partial value ring: a neutral track plus a coloured arc filled to
+ * `fraction` (0–1, clamped) of the circumference. Used for percentage dials
+ * such as humidity (the caller fills `.ring-center`). `markerAttr` tags the
+ * value arc so callers can target it in tests.
+ */
+export function buildFractionRing(
+  doc: Document,
+  stroke: string,
+  fraction: number,
+  markerAttr: string,
+): TempRing {
+  const clamped = Math.max(0, Math.min(1, fraction));
+  const svg = svgEl(
+    doc,
+    "svg",
+    { class: "ring", viewBox: "0 0 200 200" },
+    svgEl(doc, "circle", { class: "track", cx: "100", cy: "100", r: String(RING_RADIUS) }),
+    svgEl(doc, "circle", {
+      class: "val",
+      [markerAttr]: "",
+      cx: "100",
+      cy: "100",
+      r: String(RING_RADIUS),
+      stroke,
+      "stroke-dasharray": String(RING_CIRCUMFERENCE),
+      "stroke-dashoffset": String(RING_CIRCUMFERENCE * (1 - clamped)),
     }),
   );
   const center = el(doc, "div", { class: "ring-center" });

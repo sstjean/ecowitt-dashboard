@@ -11,6 +11,7 @@ function shell(): HTMLElement {
         <div data-ring="wind"></div>
         <section data-panel="rain"></section>
         <section data-panel="solar"></section>
+        <section data-panel="indoor"></section>
       </main>
     </div>`;
   return document.getElementById("app")!;
