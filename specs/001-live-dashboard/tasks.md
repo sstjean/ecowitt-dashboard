@@ -202,11 +202,11 @@ due-north renders the marker at N (0°/360°).
 
 ### Tests (write first, must fail)
 
-- [ ] T055 [P] [US2] Test: `apps/web/tests/render/windCompass.test.ts` — speed/gust/avg (speed + cardinal direction)/max-daily-gust readouts + cardinal-from-degrees mapping + rim marker rotation; 0 mph renders calm with no misleading direction (FR-014–FR-018b incl. FR-017a, edge case).
+- [X] T055 [P] [US2] Test: `apps/web/tests/render/windCompass.test.ts` — speed/gust/avg (speed + cardinal direction)/max-daily-gust readouts + cardinal-from-degrees mapping + rim marker rotation; 0 mph renders calm with no misleading direction (FR-014–FR-018b incl. FR-017a, edge case).
 
 ### Implementation
 
-- [ ] T056 [US2] Implement `apps/web/src/render/windCompass.ts` (compass gauge, rim marker, cardinal/bearing, gust/avg (speed + cardinal direction)/max-gust readouts) and wire into the left column to pass T055.
+- [X] T056 [US2] Implement `apps/web/src/render/windCompass.ts` (compass gauge, rim marker, cardinal/bearing, gust/avg (speed + cardinal direction)/max-gust readouts) and wire into the left column to pass T055.
 
 **Checkpoint**: Wind panel renders independently from a snapshot.
 
