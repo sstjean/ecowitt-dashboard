@@ -115,7 +115,13 @@ export function renderSolarSky(container: HTMLElement, data: SolarSkyData): void
     { class: "astro-center" },
     readout(
       doc,
-      el(doc, "span", {}, el(doc, "span", { "data-solar": "" }, String(data.solarWm2)), " W/m²"),
+      el(
+        doc,
+        "span",
+        {},
+        el(doc, "span", { "data-solar": "" }, String(data.solarWm2)),
+        el(doc, "span", { class: "u" }, " W/m²"),
+      ),
       "Solar",
     ),
     readout(

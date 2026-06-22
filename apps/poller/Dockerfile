@@ -23,6 +23,9 @@ RUN npm ci --omit=dev
 FROM node:22.12.0-bookworm-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
+# Data dir for the SQLite volume, owned by the non-root runtime user so an empty
+# named volume mounted here inherits node:node ownership on first init.
+RUN mkdir -p /data && chown node:node /data
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY packages/shared ./packages/shared

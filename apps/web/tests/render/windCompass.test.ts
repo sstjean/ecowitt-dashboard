@@ -47,15 +47,13 @@ describe("cardinal", () => {
 });
 
 describe("renderWindCompass", () => {
-  it("renders speed, cardinal + bearing, gust, 10-min avg, and max daily gust", () => {
+  it("renders speed, cardinal + bearing, and gust", () => {
     renderWindCompass(container, wind());
 
-    expect(container.querySelector("[data-wind-speed]")?.textContent).toBe("8");
+    expect(container.querySelector("[data-wind-speed]")?.textContent).toBe("8.0");
     expect(container.querySelector("[data-wind-dir]")?.textContent).toBe("NE");
     expect(container.querySelector("[data-wind-deg]")?.textContent).toBe("45");
-    expect(container.querySelector("[data-wind-gust]")?.textContent).toBe("14");
-    expect(container.querySelector("[data-wind-avg]")?.textContent).toBe("6 mph E");
-    expect(container.querySelector("[data-wind-maxgust]")?.textContent).toBe("22 mph W");
+    expect(container.querySelector("[data-wind-gust]")?.textContent).toBe("14.0");
   });
 
   it("rotates the rim marker to the bearing the wind comes from", () => {

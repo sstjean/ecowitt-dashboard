@@ -9,6 +9,11 @@
 specs
 **/tests
 **/*.test.ts
+**/e2e
+**/*.spec.ts
+**/playwright.config.ts
+**/test-results
+**/playwright-report
 .env
 .env.local
 .env.*.local

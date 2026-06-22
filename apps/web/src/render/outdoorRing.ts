@@ -5,29 +5,9 @@ export interface OutdoorRingData {
   outdoorTempF: number;
   dayHighF: number;
   dayLowF: number;
-  feelsLikeF: number;
-  dewpointF: number;
-  outdoorHumidityPct: number;
 }
 
-function metric(
-  doc: Document,
-  attr: string,
-  value: string,
-  unit: string,
-  label: string,
-): HTMLElement {
-  const span = el(doc, "span", { [attr]: "" }, value);
-  return el(
-    doc,
-    "div",
-    { class: "metric" },
-    el(doc, "div", { class: "m-val" }, span, unit),
-    el(doc, "div", { class: "m-lbl" }, label),
-  );
-}
-
-/** Render the headline outdoor temperature ring plus supporting readouts. */
+/** Render the headline outdoor temperature ring with its day high/low marks. */
 export function renderOutdoorRing(
   container: HTMLElement,
   data: OutdoorRingData,
@@ -55,6 +35,7 @@ export function renderOutdoorRing(
         el(doc, "span", { "data-out-hi": "" }, String(Math.round(data.dayHighF))),
         "°",
       ),
+      "\u00a0",
       el(
         doc,
         "span",
@@ -66,14 +47,5 @@ export function renderOutdoorRing(
     ),
   );
 
-  const readouts = el(
-    doc,
-    "div",
-    { class: "out-readouts" },
-    metric(doc, "data-out-feels", String(Math.round(data.feelsLikeF)), "°", "Feels Like"),
-    metric(doc, "data-out-dew", String(Math.round(data.dewpointF)), "°", "Dewpoint"),
-    metric(doc, "data-out-hum", String(Math.round(data.outdoorHumidityPct)), "%", "Humidity"),
-  );
-
-  container.replaceChildren(wrap, readouts);
+  container.replaceChildren(wrap);
 }

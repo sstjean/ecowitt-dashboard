@@ -14,33 +14,39 @@ export interface WindData {
   windMph: number;
   windDirDeg: number;
   gustMph: number;
-  windAvg10mMph: number;
-  windAvg10mDirDeg: number;
-  maxDailyGustMph: number;
-  maxDailyGustDir: string;
-}
-
-function metric(
-  doc: Document,
-  attr: string,
-  value: string,
-  label: string,
-): HTMLElement {
-  return el(
-    doc,
-    "div",
-    { class: "metric" },
-    el(doc, "div", { class: "m-val" }, el(doc, "span", { [attr]: "" }, value)),
-    el(doc, "div", { class: "m-lbl" }, label),
-  );
 }
 
 /**
  * Render the wind compass: a rim marker pointing to the bearing the wind comes
- * from, the current speed + cardinal/bearing, current gust, and the 10-minute
- * average and max daily gust (each speed + direction). At 0 mph the panel reads
- * "Calm" with no misleading direction and no rim marker (FR-017a).
+ * from, the current speed + cardinal/bearing, and the current gust. At 0 mph the
+ * panel reads "Calm" with no misleading direction and no rim marker (FR-017a).
  */
+/** Build the 12 evenly-spaced rim ticks (every 30°) of the compass rose. */
+function buildTicks(doc: Document): SVGElement[] {
+  const ticks: SVGElement[] = [];
+  for (let a = 0; a < 360; a += 30) {
+    const rad = ((a - 90) * Math.PI) / 180;
+    ticks.push(
+      svgEl(doc, "line", {
+        x1: (100 + 82 * Math.cos(rad)).toFixed(1),
+        y1: (100 + 82 * Math.sin(rad)).toFixed(1),
+        x2: (100 + 88 * Math.cos(rad)).toFixed(1),
+        y2: (100 + 88 * Math.sin(rad)).toFixed(1),
+        stroke: "var(--cp-text-muted)",
+        "stroke-width": "2",
+      }),
+    );
+  }
+  return ticks;
+}
+
+const LABEL_ATTRS = {
+  "text-anchor": "middle",
+  "font-size": "14",
+  "font-weight": "600",
+  fill: "var(--cp-text-soft)",
+} as const;
+
 export function renderWindCompass(container: HTMLElement, data: WindData): void {
   const doc = container.ownerDocument;
   const calm = data.windMph === 0;
@@ -50,10 +56,11 @@ export function renderWindCompass(container: HTMLElement, data: WindData): void 
       cx: "100", cy: "100", r: "88", fill: "none",
       stroke: "var(--cp-text-muted)", "stroke-width": "2",
     }),
-    svgEl(doc, "text", { x: "100", y: "38", "text-anchor": "middle" }, "N"),
-    svgEl(doc, "text", { x: "166", y: "105", "text-anchor": "middle" }, "E"),
-    svgEl(doc, "text", { x: "100", y: "172", "text-anchor": "middle" }, "S"),
-    svgEl(doc, "text", { x: "34", y: "105", "text-anchor": "middle" }, "W"),
+    ...buildTicks(doc),
+    svgEl(doc, "text", { x: "100", y: "38", ...LABEL_ATTRS }, "N"),
+    svgEl(doc, "text", { x: "166", y: "105", ...LABEL_ATTRS }, "E"),
+    svgEl(doc, "text", { x: "100", y: "172", ...LABEL_ATTRS }, "S"),
+    svgEl(doc, "text", { x: "34", y: "105", ...LABEL_ATTRS }, "W"),
   ];
   if (!calm) {
     face.push(
@@ -66,14 +73,19 @@ export function renderWindCompass(container: HTMLElement, data: WindData): void 
       ),
     );
   }
-  const svg = svgEl(doc, "svg", { class: "ring compass", viewBox: "0 0 200 200" }, ...face);
+  const svg = svgEl(
+    doc,
+    "svg",
+    { class: "ring", viewBox: "0 0 200 200", style: "transform:none" },
+    ...face,
+  );
 
   const center: HTMLElement[] = [
     el(
       doc,
       "div",
       { class: "ws" },
-      el(doc, "span", { "data-wind-speed": "" }, calm ? "Calm" : String(Math.round(data.windMph))),
+      el(doc, "span", { "data-wind-speed": "" }, calm ? "Calm" : data.windMph.toFixed(1)),
     ),
   ];
   if (!calm) {
@@ -96,7 +108,8 @@ export function renderWindCompass(container: HTMLElement, data: WindData): void 
       "div",
       { class: "gust" },
       "Gust ",
-      el(doc, "span", { "data-wind-gust": "" }, String(Math.round(data.gustMph))),
+      el(doc, "span", { "data-wind-gust": "" }, data.gustMph.toFixed(1)),
+      " mph",
     ),
   );
 
@@ -108,23 +121,5 @@ export function renderWindCompass(container: HTMLElement, data: WindData): void 
     el(doc, "div", { class: "wind-center" }, ...center),
   );
 
-  const metrics = el(
-    doc,
-    "div",
-    { class: "wind-metrics" },
-    metric(
-      doc,
-      "data-wind-avg",
-      `${Math.round(data.windAvg10mMph)} mph ${cardinal(data.windAvg10mDirDeg)}`,
-      "10 Min Avg",
-    ),
-    metric(
-      doc,
-      "data-wind-maxgust",
-      `${Math.round(data.maxDailyGustMph)} mph ${data.maxDailyGustDir}`,
-      "Max Gust",
-    ),
-  );
-
-  container.replaceChildren(wrap, metrics);
+  container.replaceChildren(wrap);
 }

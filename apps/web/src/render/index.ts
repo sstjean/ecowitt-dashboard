@@ -3,6 +3,7 @@ import { deriveFreshness } from "@ecowitt/shared";
 import { renderOutdoorRing } from "./outdoorRing.ts";
 import { renderFeelsLikeRing } from "./feelsLikeRing.ts";
 import { renderWindCompass } from "./windCompass.ts";
+import { renderOutMetrics } from "./outMetrics.ts";
 import { renderRainfall } from "./rainfall.ts";
 import { renderSolarSky } from "./solarSky.ts";
 import { renderIndoorRings } from "./indoorRings.ts";
@@ -23,6 +24,7 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
     const outdoorHost = root.querySelector<HTMLElement>("[data-ring='outdoor']")!;
     const feelsHost = root.querySelector<HTMLElement>("[data-ring='feels']")!;
     const windHost = root.querySelector<HTMLElement>("[data-ring='wind']")!;
+    const metricsHost = root.querySelector<HTMLElement>("[data-metrics='out']");
     const rainHost = root.querySelector<HTMLElement>("[data-panel='rain']")!;
     const solarHost = root.querySelector<HTMLElement>("[data-panel='solar']")!;
     const indoorHost = root.querySelector<HTMLElement>("[data-panel='indoor']")!;
@@ -30,6 +32,9 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
     renderOutdoorRing(outdoorHost, reading);
     renderFeelsLikeRing(feelsHost, { feelsLikeF: reading.feelsLikeF });
     renderWindCompass(windHost, reading);
+    if (metricsHost) {
+      renderOutMetrics(metricsHost, reading);
+    }
     renderRainfall(rainHost, reading);
     renderSolarSky(solarHost, {
       solarWm2: reading.solarWm2,
@@ -53,6 +58,9 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
     // The renderers above replace each panel's children (clearing any prior
     // STALE badge); the host's own `stale` class must be cleared explicitly.
     const hosts = [outdoorHost, feelsHost, windHost, rainHost, solarHost, indoorHost, baroHost];
+    if (metricsHost) {
+      hosts.push(metricsHost);
+    }
     for (const host of hosts) {
       host.classList.remove("stale");
     }

@@ -23,6 +23,13 @@ data/
 # Coverage
 coverage/
 
+# Playwright (UI e2e) output + local browser-tool scratch
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+.playwright-mcp/
+
 # Logs / temp
 *.log
 *.tmp

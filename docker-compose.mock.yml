@@ -1,0 +1,17 @@
+# Local off-LAN testing override: adds a mock gateway and points the poller at
+# it so the full ingest -> store -> api -> web pipeline runs without the real
+# device. Use with:
+#   docker compose -f docker-compose.yml -f docker-compose.mock.yml up --build
+services:
+  mock-gateway:
+    image: nginx:1.27.3-alpine
+    restart: unless-stopped
+    volumes:
+      - ./test/mock-gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./test/mock-gateway/livedata.json:/usr/share/nginx/html/livedata.json:ro
+
+  poller:
+    environment:
+      GATEWAY_BASE_URL: http://mock-gateway:80
+    depends_on:
+      - mock-gateway

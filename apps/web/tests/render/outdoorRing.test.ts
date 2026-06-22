@@ -34,15 +34,6 @@ describe("renderOutdoorRing", () => {
     expect(root.querySelector(".hl .dn")?.textContent).toContain("↓");
   });
 
-  it("renders Feels Like / Dewpoint / Humidity readouts with units", () => {
-    renderOutdoorRing(root, sample);
-    expect(root.querySelector("[data-out-feels]")?.textContent).toBe("71");
-    expect(root.querySelector("[data-out-dew]")?.textContent).toBe("56");
-    expect(root.querySelector("[data-out-hum]")?.textContent).toBe("64");
-    const labels = [...root.querySelectorAll(".m-lbl")].map((n) => n.textContent);
-    expect(labels).toEqual(["Feels Like", "Dewpoint", "Humidity"]);
-  });
-
   it("paints the ring stroke via the temperature gradient", () => {
     renderOutdoorRing(root, sample);
     const stop = root.querySelector("linearGradient stop.g0");

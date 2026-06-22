@@ -9,6 +9,7 @@ function shell(): HTMLElement {
         <div class="gauge" data-ring="outdoor"></div>
         <div data-ring="feels"></div>
         <div data-ring="wind"></div>
+        <div class="out-metrics" data-metrics="out"></div>
         <section data-panel="rain"></section>
         <section data-panel="solar"></section>
         <section data-panel="indoor"></section>
@@ -94,6 +95,14 @@ describe("renderSnapshot", () => {
     renderSnapshot(okSnap(), root);
     expect(root.querySelector("[data-out-temp]")?.textContent).toBe("72");
     expect(root.querySelector("[data-feels]")?.textContent).toBe("71");
+  });
+
+  it("fills the shared outdoor metrics bar when its host is present", () => {
+    renderSnapshot(okSnap(), root);
+    expect(root.querySelector("[data-out-dew]")?.textContent).toBe("56");
+    expect(root.querySelector("[data-out-hum]")?.textContent).toBe("64");
+    expect(root.querySelector("[data-wind-avg]")?.textContent).toBe("SSW 3.6");
+    expect(root.querySelector("[data-wind-maxgust]")?.textContent).toBe("SW 18.4");
   });
 
   it("renders the Missing state on the hosts when there is no reading", () => {
