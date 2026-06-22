@@ -83,4 +83,32 @@ describe("ingestPayload", () => {
     db.close();
     expect(count.n).toBe(0);
   });
+
+  it("rejects a structurally-valid but partial payload (missing required field)", () => {
+    const now = new Date("2026-06-21T15:30:00Z");
+    const partial = validPayload() as { common_list: Array<{ id: string; val: string }> };
+    // Drop the outdoor temperature item; the curated reading requires it.
+    partial.common_list = partial.common_list.filter((i) => i.id !== "0x02");
+
+    expect(() => ingestPayload(partial, { store, now: () => now })).toThrow();
+
+    const db = new Database(dbPath, { readonly: true });
+    const count = db.prepare("SELECT COUNT(*) AS n FROM readings").get() as { n: number };
+    db.close();
+    expect(count.n).toBe(0);
+  });
+
+  it("leaves the last good reading untouched when a later payload is rejected", () => {
+    const good = new Date("2026-06-21T15:30:00Z");
+    ingestPayload(validPayload(), { store, now: () => good });
+
+    const later = new Date("2026-06-21T15:31:00Z");
+    expect(() => ingestPayload({ garbage: true }, { store, now: () => later })).toThrow();
+
+    const db = new Database(dbPath, { readonly: true });
+    const rows = db.prepare("SELECT observed_at FROM readings").all() as Array<{ observed_at: string }>;
+    db.close();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.observed_at).toBe("2026-06-21T15:30:00.000Z");
+  });
 });

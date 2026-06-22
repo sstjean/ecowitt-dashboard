@@ -247,16 +247,16 @@ recovery.
 
 ### Tests (write first, must fail)
 
-- [ ] T059 [P] [US9] Test: extend `apps/poller/tests/ingest.test.ts` — malformed and partial payloads are rejected, nothing written, store + latest snapshot untouched (FR-047/FR-050, US9 scenario 2).
-- [ ] T060 [P] [US9] Test: extend `apps/poller/tests/scheduler.test.ts` — a failed/timed-out poll does not crash or exit and the next cadence retries (FR-046, US9 scenario 1).
-- [ ] T061 [P] [US9] Test: `apps/web/tests/render/staleState.test.ts` — when `observedAt` is older than 3× the poll cadence, panels show the Stale state (dimmed + `STALE`) over the last value (FR-035, US9 scenario 3).
-- [ ] T062 [P] [US9] Test: `apps/poller/tests/resilience.integration.test.ts` — intermittent timeout/malformed cycles keep the last good reading latest, then a valid poll restores Fresh (US9 scenarios 1–4).
+- [X] T059 [P] [US9] Test: extend `apps/poller/tests/ingest.test.ts` — malformed and partial payloads are rejected, nothing written, store + latest snapshot untouched (FR-047/FR-050, US9 scenario 2).
+- [X] T060 [P] [US9] Test: extend `apps/poller/tests/scheduler.test.ts` — a failed/timed-out poll does not crash or exit and the next cadence retries (FR-046, US9 scenario 1).
+- [X] T061 [P] [US9] Test: `apps/web/tests/render/staleState.test.ts` — when `observedAt` is older than 3× the poll cadence, panels show the Stale state (dimmed + `STALE`) over the last value (FR-035, US9 scenario 3).
+- [X] T062 [P] [US9] Test: `apps/poller/tests/resilience.integration.test.ts` — intermittent timeout/malformed cycles keep the last good reading latest, then a valid poll restores Fresh (US9 scenarios 1–4).
 
 ### Implementation
 
-- [ ] T063 [US9] Harden `apps/poller/src/ingest.ts` rejection paths (no persistence on malformed/partial) to pass T059 (depends on T047).
-- [ ] T064 [US9] Harden `apps/poller/src/scheduler.ts` retry/no-crash handling to pass T060/T062 (depends on T048).
-- [ ] T065 [US9] Extend `apps/web/src/render/freshness.ts` Stale presentation to pass T061 (depends on T054).
+- [X] T063 [US9] Harden `apps/poller/src/ingest.ts` rejection paths (no persistence on malformed/partial) to pass T059 (depends on T047).
+- [X] T064 [US9] Harden `apps/poller/src/scheduler.ts` retry/no-crash handling to pass T060/T062 (depends on T048).
+- [X] T065 [US9] Extend `apps/web/src/render/freshness.ts` Stale presentation to pass T061 (depends on T054).
 
 **Checkpoint**: Pipeline is resilient; UI degrades honestly to Stale.
 

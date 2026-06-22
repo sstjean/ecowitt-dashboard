@@ -31,3 +31,21 @@ export function renderMissingState(root: HTMLElement): void {
     host.replaceChildren(wrap);
   }
 }
+
+/**
+ * Display-side poll cadence (seconds). A reading older than 3× this cadence is
+ * Stale (spec clarification). Matches the poller default; the gateway cadence is
+ * clamped to 30–60 s, so 30 s is the conservative display threshold.
+ */
+export const POLL_CADENCE_SECONDS = 30;
+
+/**
+ * Dim a panel that still holds a value but whose reading has aged into Stale:
+ * add the `stale` class (CSS dims it) and stamp a `STALE` badge over the last
+ * value — the value is never blanked.
+ */
+export function markPanelStale(host: HTMLElement): void {
+  const doc = host.ownerDocument;
+  host.classList.add("stale");
+  host.append(el(doc, "span", { class: "stale-badge", "data-stale": "" }, "STALE"));
+}

@@ -7,18 +7,24 @@ import { DEFAULT_GATEWAY_TIMEOUT_MS } from "./gatewayClient.ts";
 const config = loadPollerConfig(process.env);
 const store = openWriteStore(config.sqlitePath);
 
-const stop = startScheduler(config.pollCadenceSeconds, () => {
-  void runPollCycle({
-    baseUrl: config.gatewayBaseUrl,
-    timeoutMs: DEFAULT_GATEWAY_TIMEOUT_MS,
-    fetchImpl: fetch,
-    store,
-    now: () => new Date(),
-    onError: (error) => {
-      console.error(`[poller] cycle failed: ${error}`);
-    },
-  });
-});
+const stop = startScheduler(
+  config.pollCadenceSeconds,
+  () => {
+    void runPollCycle({
+      baseUrl: config.gatewayBaseUrl,
+      timeoutMs: DEFAULT_GATEWAY_TIMEOUT_MS,
+      fetchImpl: fetch,
+      store,
+      now: () => new Date(),
+      onError: (error) => {
+        console.error(`[poller] cycle failed: ${error}`);
+      },
+    });
+  },
+  (error) => {
+    console.error(`[poller] scheduler tick threw: ${String(error)}`);
+  },
+);
 
 function shutdown(): void {
   stop();
