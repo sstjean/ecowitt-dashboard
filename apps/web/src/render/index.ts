@@ -4,6 +4,7 @@ import { renderOutdoorRing } from "./outdoorRing.ts";
 import { renderFeelsLikeRing } from "./feelsLikeRing.ts";
 import { renderWindCompass } from "./windCompass.ts";
 import { renderRainfall } from "./rainfall.ts";
+import { renderSolarSky } from "./solarSky.ts";
 import { renderMissingState, markPanelStale, POLL_CADENCE_SECONDS } from "./freshness.ts";
 import { createHeader } from "./header.ts";
 
@@ -21,14 +22,23 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
     const feelsHost = root.querySelector<HTMLElement>("[data-ring='feels']")!;
     const windHost = root.querySelector<HTMLElement>("[data-ring='wind']")!;
     const rainHost = root.querySelector<HTMLElement>("[data-panel='rain']")!;
+    const solarHost = root.querySelector<HTMLElement>("[data-panel='solar']")!;
     renderOutdoorRing(outdoorHost, reading);
     renderFeelsLikeRing(feelsHost, { feelsLikeF: reading.feelsLikeF });
     renderWindCompass(windHost, reading);
     renderRainfall(rainHost, reading);
+    renderSolarSky(solarHost, {
+      solarWm2: reading.solarWm2,
+      uvIndex: reading.uvIndex,
+      sunriseUtc: snapshot.astro.sunriseUtc,
+      sunsetUtc: snapshot.astro.sunsetUtc,
+      sunAltitudeFraction: snapshot.astro.sunAltitudeFraction,
+      moonPhase: snapshot.astro.moonPhase,
+    });
 
     // The renderers above replace each panel's children (clearing any prior
     // STALE badge); the host's own `stale` class must be cleared explicitly.
-    const hosts = [outdoorHost, feelsHost, windHost, rainHost];
+    const hosts = [outdoorHost, feelsHost, windHost, rainHost, solarHost];
     for (const host of hosts) {
       host.classList.remove("stale");
     }

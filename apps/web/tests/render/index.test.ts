@@ -10,6 +10,7 @@ function shell(): HTMLElement {
         <div data-ring="feels"></div>
         <div data-ring="wind"></div>
         <section data-panel="rain"></section>
+        <section data-panel="solar"></section>
       </main>
     </div>`;
   return document.getElementById("app")!;

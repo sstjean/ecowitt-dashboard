@@ -275,12 +275,12 @@ position (apex at midday; bounded outside daylight), and the moon phase.
 ### Tests (write first, must fail)
 
 - [X] T066 [P] [US4] Test: `apps/api/tests/enrich.astro.test.ts` — `AstronomicalData` from SunCalc (lat/lon + date): sunrise/sunset UTC, `sunAltitudeFraction` 0–1 bounded outside daylight, `moonPhase` (FR-021–FR-023, data-model.md §6); offline only.
-- [ ] T067 [P] [US4] Test: `apps/web/tests/render/solarSky.test.ts` — solar/UV readouts, Eastern sunrise/sunset, day-arc sun-marker position (apex at midday, bounded at night), moon-phase indicator (FR-019–FR-023, edge case).
+- [X] T067 [P] [US4] Test: `apps/web/tests/render/solarSky.test.ts` — solar/UV readouts, Eastern sunrise/sunset, day-arc sun-marker position (apex at midday, bounded at night), moon-phase indicator (FR-019–FR-023, edge case).
 
 ### Implementation
 
 - [X] T068 [US4] Implement `apps/api/src/enrich.ts` astro section (SunCalc) and include `astro` in the latest route to pass T066 (depends on T022, T049).
-- [ ] T069 [US4] Implement `apps/web/src/render/solarSky.ts` (readouts + day arc + sun marker + moon phase) and wire into the left column to pass T067 (depends on T068).
+- [X] T069 [US4] Implement `apps/web/src/render/solarSky.ts` (readouts + day arc + sun marker + moon phase) and wire into the left column to pass T067 (depends on T068).
 
 **Checkpoint**: Solar & Sky panel renders with server-computed astro.
 
