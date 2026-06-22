@@ -80,10 +80,10 @@ on these.
 
 ### Config / env
 
-- [ ] T019 [P] Test: `apps/poller/tests/config.test.ts` — parse/validate env (GATEWAY_BASE_URL required; POLL_CADENCE_SECONDS default 30, clamp/reject outside 30–60; SQLITE_PATH required; lat/lon required) per data-model.md §10.
-- [ ] T020 Implement `apps/poller/src/config.ts` (zod-validated env parsing) to pass T019.
-- [ ] T021 [P] Test: `apps/api/tests/config.test.ts` — API env parsing (SQLITE_PATH, HOUSEHOLD_LAT/LON, BARO_TREND_WINDOW_HOURS default 3, BARO_STEADY_EPSILON_HPA default 0.3, RAIN_FULL_SCALE_IN default 4.0, NWS_USER_AGENT required, NWS_CACHE_TTL_SECONDS default 600, NWS_STALE_AFTER_SECONDS default 3600, NWS_TIMEOUT_MS default 5000).
-- [ ] T022 Implement `apps/api/src/config.ts` (zod-validated env parsing) to pass T021.
+- [X] T019 [P] Test: `apps/poller/tests/config.test.ts` — parse/validate env (GATEWAY_BASE_URL required; POLL_CADENCE_SECONDS default 30, clamp/reject outside 30–60; SQLITE_PATH required; lat/lon required) per data-model.md §10.
+- [X] T020 Implement `apps/poller/src/config.ts` (zod-validated env parsing) to pass T019.
+- [X] T021 [P] Test: `apps/api/tests/config.test.ts` — API env parsing (SQLITE_PATH, HOUSEHOLD_LAT/LON, BARO_TREND_WINDOW_HOURS default 3, BARO_STEADY_EPSILON_HPA default 0.3, RAIN_FULL_SCALE_IN default 4.0, NWS_USER_AGENT required, NWS_CACHE_TTL_SECONDS default 600, NWS_STALE_AFTER_SECONDS default 3600, NWS_TIMEOUT_MS default 5000).
+- [X] T022 Implement `apps/api/src/config.ts` (zod-validated env parsing) to pass T021.
 
 ### API skeleton + web shell
 
