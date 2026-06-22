@@ -147,20 +147,20 @@ snapshot (and the dashboard) with no manual intervention.
 
 ### Tests (write first, must fail)
 
-- [ ] T041 [P] [US7] Test: `apps/poller/tests/gatewayClient.test.ts` — `fetch` with `AbortController` timeout against a stub server: success returns raw JSON; timeout/connection-error returns a typed failure without throwing (FR-043/FR-046).
-- [ ] T042 [P] [US7] Test: `apps/poller/tests/ingest.test.ts` — valid payload → validate → map (FullMetricMap) → persist exactly one row; returns the curated snapshot (FR-047/FR-050).
-- [ ] T043 [P] [US7] Test: `apps/poller/tests/scheduler.test.ts` — fires on the poll cadence (default 30 s, fake timers) and invokes one ingest per tick (FR-045).
-- [ ] T044 [P] [US7] Test: `apps/api/tests/latest.test.ts` — `fastify.inject` GET `/api/v1/latest` over a seeded temp store returns `status:"ok"` + the projected `LiveReadingSnapshot` (incl. the API-derived `dayHighF`/`dayLowF`/`windAvg10mMph`/`maxDailyGustDir`, T049a) + `serverTime` (FR-051/FR-052).
-- [ ] T044a [P] [US7] Test: `apps/api/tests/enrich.daily.test.ts` — `DailyDerived` from seeded history: `dayHighF`/`dayLowF` = max/min outdoor temp since local (`America/New_York`) midnight; `windAvg10mMph` = rolling 10-min mean of `windMph`; `maxDailyGustDir` = wind dir at the largest gust since local midnight; cold-start (too little history) falls back to the current reading's instantaneous equivalent, never a fabricated zero (FR-018b, data-model.md §7b).
-- [ ] T045 [P] [US7] Test: `apps/poller/tests/pipeline.integration.test.ts` — stub gateway → ingest → store → api read: API reflects the stub values, and a changed stub payload updates the latest snapshot on the next cycle (US7 scenarios 1–3).
+- [X] T041 [P] [US7] Test: `apps/poller/tests/gatewayClient.test.ts` — `fetch` with `AbortController` timeout against a stub server: success returns raw JSON; timeout/connection-error returns a typed failure without throwing (FR-043/FR-046).
+- [X] T042 [P] [US7] Test: `apps/poller/tests/ingest.test.ts` — valid payload → validate → map (FullMetricMap) → persist exactly one row; returns the curated snapshot (FR-047/FR-050).
+- [X] T043 [P] [US7] Test: `apps/poller/tests/scheduler.test.ts` — fires on the poll cadence (default 30 s, fake timers) and invokes one ingest per tick (FR-045).
+- [X] T044 [P] [US7] Test: `apps/api/tests/latest.test.ts` — `fastify.inject` GET `/api/v1/latest` over a seeded temp store returns `status:"ok"` + the projected `LiveReadingSnapshot` (incl. the API-derived `dayHighF`/`dayLowF`/`windAvg10mMph`/`maxDailyGustDir`, T049a) + `serverTime` (FR-051/FR-052).
+- [X] T044a [P] [US7] Test: `apps/api/tests/enrich.daily.test.ts` — `DailyDerived` from seeded history: `dayHighF`/`dayLowF` = max/min outdoor temp since local (`America/New_York`) midnight; `windAvg10mMph` = rolling 10-min mean of `windMph`; `maxDailyGustDir` = wind dir at the largest gust since local midnight; cold-start (too little history) falls back to the current reading's instantaneous equivalent, never a fabricated zero (FR-018b, data-model.md §7b).
+- [X] T045 [P] [US7] Test: `apps/poller/tests/pipeline.integration.test.ts` — stub gateway → ingest → store → api read: API reflects the stub values, and a changed stub payload updates the latest snapshot on the next cycle (US7 scenarios 1–3).
 
 ### Implementation
 
-- [ ] T046 [P] [US7] Implement `apps/poller/src/gatewayClient.ts` (timeout-bounded pull) to pass T041 (depends on T020).
-- [ ] T047 [US7] Implement `apps/poller/src/ingest.ts` (validate → map → persist via store) to pass T042 (depends on T012, T016, T046).
-- [ ] T048 [US7] Implement `apps/poller/src/scheduler.ts` + `apps/poller/src/index.ts` (cadence timer driving ingest) to pass T043 (depends on T047).
-- [ ] T049 [US7] Implement `apps/api/src/routes/v1/latest.ts` (read latest → curated projection → `LatestSnapshot` with `serverTime`, merging the daily-derived aggregates from T049a) to pass T044 (depends on T018, T024); make the integration test T045 pass.
-- [ ] T049a [US7] Implement `apps/api/src/enrich.ts` daily-derived section (`dayHighF`/`dayLowF`/`windAvg10mMph`/`maxDailyGustDir` computed from stored history with the cold-start fallback) and merge it into the latest projection to pass T044a (depends on T018, T049).
+- [X] T046 [P] [US7] Implement `apps/poller/src/gatewayClient.ts` (timeout-bounded pull) to pass T041 (depends on T020).
+- [X] T047 [US7] Implement `apps/poller/src/ingest.ts` (validate → map → persist via store) to pass T042 (depends on T012, T016, T046).
+- [X] T048 [US7] Implement `apps/poller/src/scheduler.ts` + `apps/poller/src/index.ts` (cadence timer driving ingest) to pass T043 (depends on T047).
+- [X] T049 [US7] Implement `apps/api/src/routes/v1/latest.ts` (read latest → curated projection → `LatestSnapshot` with `serverTime`, merging the daily-derived aggregates from T049a) to pass T044 (depends on T018, T024); make the integration test T045 pass.
+- [X] T049a [US7] Implement `apps/api/src/enrich.ts` daily-derived section (`dayHighF`/`dayLowF`/`windAvg10mMph`/`maxDailyGustDir` computed from stored history with the cold-start fallback) and merge it into the latest projection to pass T044a (depends on T018, T049).
 
 **Checkpoint**: Real gateway data flows stub → store → API → US1 panels.
 
@@ -274,12 +274,12 @@ position (apex at midday; bounded outside daylight), and the moon phase.
 
 ### Tests (write first, must fail)
 
-- [ ] T066 [P] [US4] Test: `apps/api/tests/enrich.astro.test.ts` — `AstronomicalData` from SunCalc (lat/lon + date): sunrise/sunset UTC, `sunAltitudeFraction` 0–1 bounded outside daylight, `moonPhase` (FR-021–FR-023, data-model.md §6); offline only.
+- [X] T066 [P] [US4] Test: `apps/api/tests/enrich.astro.test.ts` — `AstronomicalData` from SunCalc (lat/lon + date): sunrise/sunset UTC, `sunAltitudeFraction` 0–1 bounded outside daylight, `moonPhase` (FR-021–FR-023, data-model.md §6); offline only.
 - [ ] T067 [P] [US4] Test: `apps/web/tests/render/solarSky.test.ts` — solar/UV readouts, Eastern sunrise/sunset, day-arc sun-marker position (apex at midday, bounded at night), moon-phase indicator (FR-019–FR-023, edge case).
 
 ### Implementation
 
-- [ ] T068 [US4] Implement `apps/api/src/enrich.ts` astro section (SunCalc) and include `astro` in the latest route to pass T066 (depends on T022, T049).
+- [X] T068 [US4] Implement `apps/api/src/enrich.ts` astro section (SunCalc) and include `astro` in the latest route to pass T066 (depends on T022, T049).
 - [ ] T069 [US4] Implement `apps/web/src/render/solarSky.ts` (readouts + day arc + sun marker + moon phase) and wire into the left column to pass T067 (depends on T068).
 
 **Checkpoint**: Solar & Sky panel renders with server-computed astro.
