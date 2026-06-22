@@ -24,7 +24,22 @@ export function buildLatestSnapshot(
 ): LatestSnapshot {
   const serverTime = now.toISOString();
   const astro = computeAstro(config.householdLat, config.householdLon, now);
-  const latest = store.getLatest()!;
+  const baroTrend = { direction: "unavailable" as const, deltaHpa: null };
+
+  const latest = store.getLatest();
+  if (latest === null) {
+    return latestSnapshotSchema.parse({
+      status: "no-data",
+      observedAt: null,
+      reading: null,
+      astro,
+      baroTrend,
+      conditionIcon: null,
+      conditionStale: true,
+      serverTime,
+    });
+  }
+
   const mapped = projectLiveReading(latest.metrics, latest.observedAt);
   const history = store.getWindow(localDayStartIso(now, TIME_ZONE));
   const daily = deriveDaily(mapped, history, now);
@@ -35,7 +50,7 @@ export function buildLatestSnapshot(
     observedAt: latest.observedAt,
     reading,
     astro,
-    baroTrend: { direction: "unavailable", deltaHpa: null },
+    baroTrend,
     conditionIcon: null,
     conditionStale: true,
     serverTime,

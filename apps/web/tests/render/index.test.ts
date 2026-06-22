@@ -91,11 +91,12 @@ describe("renderSnapshot", () => {
     expect(root.querySelector("[data-feels]")?.textContent).toBe("71");
   });
 
-  it("clears the temperature hosts when there is no reading", () => {
+  it("renders the Missing state on the hosts when there is no reading", () => {
     renderSnapshot(okSnap(), root);
     renderSnapshot(noDataSnap(), root);
-    expect(root.querySelector("[data-ring='outdoor']")?.childElementCount).toBe(0);
-    expect(root.querySelector("[data-ring='feels']")?.childElementCount).toBe(0);
+    expect(root.querySelector("[data-ring='outdoor']")?.textContent).toContain("—");
+    expect(root.querySelector("[data-ring='feels']")?.textContent).toContain("—");
+    expect(root.querySelector("[data-ring='outdoor'] .ring.missing")).not.toBeNull();
   });
 });
 

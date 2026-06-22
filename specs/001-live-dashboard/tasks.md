@@ -178,14 +178,14 @@ ingest one reading and confirm panels transition Missing → Fresh.
 
 ### Tests (write first, must fail)
 
-- [ ] T050 [P] [US8] Test: extend `apps/api/tests/latest.test.ts` — empty store ⇒ `status:"no-data"`, `reading:null`, `observedAt:null`, HTTP 200, no fabricated values; assert the no-data envelope carries `conditionIcon:null` + `conditionStale:true` (the NWS icon is never fabricated from an empty store) (FR-053/FR-033, OpenAPI `noData` example).
-- [ ] T051 [P] [US8] Test: `apps/web/tests/render/missingState.test.ts` — given `no-data` (and per-panel missing values), every panel renders the Missing state (`—`, neutral gauge); never a `0` (FR-035).
-- [ ] T052 [P] [US8] Test: `apps/web/tests/render/freshTransition.test.ts` — Missing → Fresh transition when the first real snapshot arrives (US8 scenario 3).
+- [X] T050 [P] [US8] Test: extend `apps/api/tests/latest.test.ts` — empty store ⇒ `status:"no-data"`, `reading:null`, `observedAt:null`, HTTP 200, no fabricated values; assert the no-data envelope carries `conditionIcon:null` + `conditionStale:true` (the NWS icon is never fabricated from an empty store) (FR-053/FR-033, OpenAPI `noData` example).
+- [X] T051 [P] [US8] Test: `apps/web/tests/render/missingState.test.ts` — given `no-data` (and per-panel missing values), every panel renders the Missing state (`—`, neutral gauge); never a `0` (FR-035).
+- [X] T052 [P] [US8] Test: `apps/web/tests/render/freshTransition.test.ts` — Missing → Fresh transition when the first real snapshot arrives (US8 scenario 3).
 
 ### Implementation
 
-- [ ] T053 [US8] Implement the `no-data` branch in `apps/api/src/routes/v1/latest.ts` (empty store ⇒ explicit no-data envelope; `conditionIcon` reflects the NWS cache — `null`/`conditionStale:true` until a fetch succeeds, never fabricated per FR-033) to pass T050 (depends on T049).
-- [ ] T054 [US8] Implement `apps/web/src/render/freshness.ts` (per-panel Fresh/Stale/Missing presentation using shared `freshness.ts`) + wire into the render dispatch to pass T051/T052 (depends on T013, T030).
+- [X] T053 [US8] Implement the `no-data` branch in `apps/api/src/routes/v1/latest.ts` (empty store ⇒ explicit no-data envelope; `conditionIcon` reflects the NWS cache — `null`/`conditionStale:true` until a fetch succeeds, never fabricated per FR-033) to pass T050 (depends on T049).
+- [X] T054 [US8] Implement `apps/web/src/render/freshness.ts` (per-panel Fresh/Stale/Missing presentation using shared `freshness.ts`) + wire into the render dispatch to pass T051/T052 (depends on T013, T030).
 
 **Checkpoint**: Fresh install renders cleanly; no-data path verified end-to-end.
 

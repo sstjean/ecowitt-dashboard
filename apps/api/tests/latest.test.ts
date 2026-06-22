@@ -109,4 +109,31 @@ describe("GET /api/v1/latest", () => {
     expect(typeof body.reading.windAvg10mMph).toBe("number");
     expect(Number.isNaN(Date.parse(body.serverTime))).toBe(false);
   });
+
+  it("returns an explicit no-data envelope (never fabricated zeros) for an empty store", async () => {
+    store = openReadStore(dbPath);
+    const app = buildServer({ store, config });
+    const res = await app.inject({ method: "GET", url: "/api/v1/latest" });
+    await app.close();
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      status: string;
+      observedAt: string | null;
+      reading: unknown;
+      astro: unknown;
+      conditionIcon: unknown;
+      conditionStale: boolean;
+      serverTime: string;
+    };
+    expect(body.status).toBe("no-data");
+    expect(body.observedAt).toBeNull();
+    expect(body.reading).toBeNull();
+    // Astro is still computed (offline) even with no readings.
+    expect(body.astro).not.toBeNull();
+    // The NWS icon is never fabricated from an empty store.
+    expect(body.conditionIcon).toBeNull();
+    expect(body.conditionStale).toBe(true);
+    expect(Number.isNaN(Date.parse(body.serverTime))).toBe(false);
+  });
 });

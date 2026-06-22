@@ -1,22 +1,23 @@
 import type { LatestSnapshot } from "@ecowitt/shared";
 import { renderOutdoorRing } from "./outdoorRing.ts";
 import { renderFeelsLikeRing } from "./feelsLikeRing.ts";
+import { renderMissingState } from "./freshness.ts";
 import { createHeader } from "./header.ts";
 
 /**
- * Render the live panels from a snapshot. When there is no observed reading the
- * temperature hosts are cleared; the wall-clock header ticks independently.
+ * Render the live panels from a snapshot. With no observed reading every panel
+ * falls back to its Missing state (em-dash on a neutral gauge, never a `0`); the
+ * wall-clock header ticks independently.
  */
 export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): void {
-  const outdoorHost = root.querySelector<HTMLElement>("[data-ring='outdoor']")!;
-  const feelsHost = root.querySelector<HTMLElement>("[data-ring='feels']")!;
   const reading = snapshot.reading;
   if (reading) {
+    const outdoorHost = root.querySelector<HTMLElement>("[data-ring='outdoor']")!;
+    const feelsHost = root.querySelector<HTMLElement>("[data-ring='feels']")!;
     renderOutdoorRing(outdoorHost, reading);
     renderFeelsLikeRing(feelsHost, { feelsLikeF: reading.feelsLikeF });
   } else {
-    outdoorHost.replaceChildren();
-    feelsHost.replaceChildren();
+    renderMissingState(root);
   }
 }
 
