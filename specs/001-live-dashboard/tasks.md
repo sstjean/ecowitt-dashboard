@@ -87,14 +87,14 @@ on these.
 
 ### API skeleton + web shell
 
-- [ ] T023 [P] Test: `apps/api/tests/health.test.ts` — `fastify.inject` GET `/api/v1/health` returns `{status, storeReachable, serverTime}` per OpenAPI `Health`.
-- [ ] T024 Implement `apps/api/src/server.ts` (Fastify 5, `/api/v1` prefix, route registration) and `apps/api/src/routes/v1/health.ts` to pass T023 (depends on T018, T022).
-- [ ] T025 [P] Test: `apps/web/tests/eastern.test.ts` — `format/eastern.ts` renders date ("Tuesday, June 19th, 2026" with ordinal) and 12-hour time in `America/New_York`, including a DST-vs-standard date (FR-006/FR-007, timezone rule).
-- [ ] T026 Implement `apps/web/src/format/eastern.ts` (Intl `America/New_York` date/time + ordinal-suffix formatters) to pass T025.
-- [ ] T027 [P] Test: `apps/web/tests/api.test.ts` — typed `api.ts` fetch of `/api/v1/latest` parses `LatestSnapshot` (ok + no-data) via the shared schema, with mocked `fetch`.
-- [ ] T028 Implement `apps/web/src/api.ts` (typed `/api/v1/latest` client) to pass T027 (depends on T014).
-- [ ] T029 [P] Test: `apps/web/tests/main.test.ts` — poll loop ticks on the UI-refresh cadence (default 10 s, fake timers), fetches the snapshot, and dispatches to render; no thrash on refresh (FR-034a).
-- [ ] T030 Implement `apps/web/src/main.ts` (UI-refresh poll loop) + `apps/web/index.html` two-column panel grid skeleton + `apps/web/src/render/index.ts` render dispatch stub to pass T029 (depends on T028).
+- [X] T023 [P] Test: `apps/api/tests/health.test.ts` — `fastify.inject` GET `/api/v1/health` returns `{status, storeReachable, serverTime}` per OpenAPI `Health`.
+- [X] T024 Implement `apps/api/src/server.ts` (Fastify 5, `/api/v1` prefix, route registration) and `apps/api/src/routes/v1/health.ts` to pass T023 (depends on T018, T022).
+- [X] T025 [P] Test: `apps/web/tests/eastern.test.ts` — `format/eastern.ts` renders date ("Tuesday, June 19th, 2026" with ordinal) and 12-hour time in `America/New_York`, including a DST-vs-standard date (FR-006/FR-007, timezone rule).
+- [X] T026 Implement `apps/web/src/format/eastern.ts` (Intl `America/New_York` date/time + ordinal-suffix formatters) to pass T025.
+- [X] T027 [P] Test: `apps/web/tests/api.test.ts` — typed `api.ts` fetch of `/api/v1/latest` parses `LatestSnapshot` (ok + no-data) via the shared schema, with mocked `fetch`.
+- [X] T028 Implement `apps/web/src/api.ts` (typed `/api/v1/latest` client) to pass T027 (depends on T014).
+- [X] T029 [P] Test: `apps/web/tests/main.test.ts` — poll loop ticks on the UI-refresh cadence (default 10 s, fake timers), fetches the snapshot, and dispatches to render; no thrash on refresh (FR-034a).
+- [X] T030 Implement `apps/web/src/main.ts` (UI-refresh poll loop) + `apps/web/index.html` two-column panel grid skeleton + `apps/web/src/render/index.ts` render dispatch stub to pass T029 (depends on T028).
 
 **Checkpoint**: API serves `/api/v1/health`; web shell polls `/api/v1/latest` and lays out the empty panel grid. Foundation ready — user stories can begin.
 

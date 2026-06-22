@@ -1,4 +1,23 @@
-/* Styles — implemented in Phase 12 (T078). */
+/* Styles — full design language applied in Phase 12 (T078). */
 :root {
   color-scheme: dark;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 720px) {
+  .panel-grid {
+    grid-template-columns: 1fr;
+  }
 }
