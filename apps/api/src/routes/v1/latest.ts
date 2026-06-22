@@ -7,24 +7,38 @@ import {
 } from "@ecowitt/shared";
 import type { ReadStore } from "../../store.ts";
 import type { ApiConfig } from "../../config.ts";
-import { deriveDaily, computeAstro, localDayStartIso } from "../../enrich.ts";
+import { deriveDaily, deriveBaroTrend, computeAstro, localDayStartIso } from "../../enrich.ts";
+import type { ConditionState, NwsClient } from "../../nws.ts";
 
 const TIME_ZONE = "America/New_York";
+
+const UNAVAILABLE_CONDITION: ConditionState = {
+  conditionIcon: null,
+  conditionStale: true,
+};
 
 /**
  * Assemble the `/api/v1/latest` envelope: the curated reading projected from the
  * latest stored metrics, merged with the API-derived daily aggregates, plus the
- * SunCalc astro context. Barometric trend and the NWS condition icon start as
- * their honest "unavailable" defaults and are filled in by later stories.
+ * SunCalc astro context, the barometric trend over the configured window, and
+ * the (possibly stale) NWS condition icon.
  */
 export function buildLatestSnapshot(
   store: ReadStore,
   config: ApiConfig,
   now: Date,
+  condition: ConditionState,
 ): LatestSnapshot {
   const serverTime = now.toISOString();
   const astro = computeAstro(config.householdLat, config.householdLon, now);
-  const baroTrend = { direction: "unavailable" as const, deltaHpa: null };
+  const baroSince = new Date(
+    now.getTime() - config.baroTrendWindowHours * 60 * 60 * 1000,
+  ).toISOString();
+  const baroTrend = deriveBaroTrend(
+    store.getWindow(baroSince),
+    config.baroTrendWindowHours,
+    config.baroSteadyEpsilonHpa,
+  );
 
   const latest = store.getLatest();
   if (latest === null) {
@@ -34,8 +48,8 @@ export function buildLatestSnapshot(
       reading: null,
       astro,
       baroTrend,
-      conditionIcon: null,
-      conditionStale: true,
+      conditionIcon: condition.conditionIcon,
+      conditionStale: condition.conditionStale,
       serverTime,
     });
   }
@@ -51,8 +65,8 @@ export function buildLatestSnapshot(
     reading,
     astro,
     baroTrend,
-    conditionIcon: null,
-    conditionStale: true,
+    conditionIcon: condition.conditionIcon,
+    conditionStale: condition.conditionStale,
     serverTime,
   });
 }
@@ -62,6 +76,15 @@ export function registerLatestRoute(
   app: FastifyInstance,
   store: ReadStore,
   config: ApiConfig,
+  nws?: NwsClient,
 ): void {
-  app.get("/latest", () => buildLatestSnapshot(store, config, new Date()));
+  app.get("/latest", async () => {
+    const now = new Date();
+    let condition = UNAVAILABLE_CONDITION;
+    if (nws !== undefined) {
+      await nws.refresh(now);
+      condition = nws.current(now);
+    }
+    return buildLatestSnapshot(store, config, now, condition);
+  });
 }

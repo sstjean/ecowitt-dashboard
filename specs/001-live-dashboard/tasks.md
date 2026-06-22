@@ -320,16 +320,16 @@ renders greyed without affecting any other panel.
 
 ### Tests (write first, must fail)
 
-- [ ] T072 [P] [US6] Test: `apps/api/tests/enrich.baro.test.ts` — `BarometricTrend` over the 3 h window: rising (`delta > +epsilon`), falling (`delta < -epsilon`), and steady (`|delta| <= BARO_STEADY_EPSILON_HPA`) deterministically, plus `unavailable`/null when <3 h of history exist (FR-031/FR-032/FR-032a, data-model.md §7/§10).
-- [ ] T073 [P] [US6] Test: `apps/api/tests/nws.map.test.ts` — pure `nwsObservation → conditionIcon` mapping over the vocabulary (`clear`/`partly-cloudy`/`cloudy`/`fog`/`rainy`/`snow`/`thunderstorm`/`night`), incl. NWS day/night, as a pure function (FR-033, data-model.md §7a).
-- [ ] T074 [P] [US6] Test: `apps/web/tests/render/barometer.test.ts` — pressure readout, trend arrow + delta (and "trend unavailable" state), the condition icon, **and the greyed stale-icon state when `conditionStale` is true** (FR-031/FR-032/FR-032a/FR-033, US6 scenarios).
-- [ ] T085a [P] [US6] Test: `apps/api/tests/nws.test.ts` — injectable/mocked NWS client: success ⇒ caches + maps latest observation; reuse within `NWS_CACHE_TTL_SECONDS`; `NWS_TIMEOUT_MS` timeout ⇒ keep last good + `conditionStale:true`; last good older than `NWS_STALE_AFTER_SECONDS` ⇒ `conditionStale:true`; never throws to the route (FR-033/FR-057, no live network).
+- [X] T072 [P] [US6] Test: `apps/api/tests/enrich.baro.test.ts` — `BarometricTrend` over the 3 h window: rising (`delta > +epsilon`), falling (`delta < -epsilon`), and steady (`|delta| <= BARO_STEADY_EPSILON_HPA`) deterministically, plus `unavailable`/null when <3 h of history exist (FR-031/FR-032/FR-032a, data-model.md §7/§10).
+- [X] T073 [P] [US6] Test: `apps/api/tests/nws.map.test.ts` — pure `nwsObservation → conditionIcon` mapping over the vocabulary (`clear`/`partly-cloudy`/`cloudy`/`fog`/`rainy`/`snow`/`thunderstorm`/`night`), incl. NWS day/night, as a pure function (FR-033, data-model.md §7a).
+- [X] T074 [P] [US6] Test: `apps/web/tests/render/barometer.test.ts` — pressure readout, trend arrow + delta (and "trend unavailable" state), the condition icon, **and the greyed stale-icon state when `conditionStale` is true** (FR-031/FR-032/FR-032a/FR-033, US6 scenarios).
+- [X] T085a [P] [US6] Test: `apps/api/tests/nws.test.ts` — injectable/mocked NWS client: success ⇒ caches + maps latest observation; reuse within `NWS_CACHE_TTL_SECONDS`; `NWS_TIMEOUT_MS` timeout ⇒ keep last good + `conditionStale:true`; last good older than `NWS_STALE_AFTER_SECONDS` ⇒ `conditionStale:true`; never throws to the route (FR-033/FR-057, no live network).
 
 ### Implementation
 
-- [ ] T075 [US6] Implement `apps/api/src/enrich.ts` baro-trend section (3 h window read from store) to pass T072 (depends on T018, T049).
-- [ ] T076 [US6] Implement `apps/api/src/nws.ts` — injectable NWS client (fetch latest observation with `NWS_USER_AGENT` + `NWS_TIMEOUT_MS`, cache for `NWS_CACHE_TTL_SECONDS`, stale after `NWS_STALE_AFTER_SECONDS`) plus the pure `conditionIcon` mapping; include `baroTrend`, `conditionIcon`, and `conditionStale` (with stale fallback on any NWS failure) in the latest route to pass T073/T085a (depends on T068, T075).
-- [ ] T077 [US6] Implement `apps/web/src/render/barometer.ts` (pressure + trend + condition icon, incl. trend-unavailable state and **greyed icon when `conditionStale` is true**) and wire into the right column to pass T074 (depends on T076).
+- [X] T075 [US6] Implement `apps/api/src/enrich.ts` baro-trend section (3 h window read from store) to pass T072 (depends on T018, T049).
+- [X] T076 [US6] Implement `apps/api/src/nws.ts` — injectable NWS client (fetch latest observation with `NWS_USER_AGENT` + `NWS_TIMEOUT_MS`, cache for `NWS_CACHE_TTL_SECONDS`, stale after `NWS_STALE_AFTER_SECONDS`) plus the pure `conditionIcon` mapping; include `baroTrend`, `conditionIcon`, and `conditionStale` (with stale fallback on any NWS failure) in the latest route to pass T073/T085a (depends on T068, T075).
+- [X] T077 [US6] Implement `apps/web/src/render/barometer.ts` (pressure + trend + condition icon, incl. trend-unavailable state and **greyed icon when `conditionStale` is true**) and wire into the right column to pass T074 (depends on T076).
 
 **Checkpoint**: All nine user stories independently functional.
 

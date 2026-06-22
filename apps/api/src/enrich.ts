@@ -1,5 +1,5 @@
 import type { LiveReadingSnapshot } from "@ecowitt/shared";
-import type { AstronomicalData } from "@ecowitt/shared";
+import type { AstronomicalData, BarometricTrend } from "@ecowitt/shared";
 import * as SunCalc from "suncalc";
 import type { StoredReading } from "./store.ts";
 
@@ -91,6 +91,33 @@ export function deriveDaily(
   const maxDailyGustDir = degToCardinal(gustDir);
 
   return { dayHighF, dayLowF, windAvg10mMph, maxDailyGustDir };
+}
+
+/**
+ * Derive the barometric trend over the configured window (data-model.md §7).
+ * Honest by construction: with fewer than `windowHours` of stored history the
+ * trend is `unavailable` with a `null` delta rather than a fabricated steady/zero.
+ * The dead-band makes the rising/steady/falling boundary deterministic:
+ * `steady` when `|delta| <= epsilon`, `rising`/`falling` otherwise.
+ */
+export function deriveBaroTrend(
+  window: StoredReading[],
+  windowHours: number,
+  epsilonHpa: number,
+): BarometricTrend {
+  if (window.length < 2) {
+    return { direction: "unavailable", deltaHpa: null };
+  }
+  const oldest = window[0]!;
+  const newest = window[window.length - 1]!;
+  const spanMs = Date.parse(newest.observedAt) - Date.parse(oldest.observedAt);
+  if (spanMs < windowHours * 60 * 60 * 1000) {
+    return { direction: "unavailable", deltaHpa: null };
+  }
+  const deltaHpa = num(newest.metrics.pressureHpa) - num(oldest.metrics.pressureHpa);
+  const direction =
+    Math.abs(deltaHpa) <= epsilonHpa ? "steady" : deltaHpa > 0 ? "rising" : "falling";
+  return { direction, deltaHpa };
 }
 
 /**

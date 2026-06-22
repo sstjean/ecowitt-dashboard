@@ -112,7 +112,10 @@ describe("poller resilience through gateway hiccups", () => {
     expect(malformed).toBeNull();
 
     // Through both failures the last good reading is still served.
-    const held = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:05Z"));
+    const held = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:05Z"), {
+      conditionIcon: null,
+      conditionStale: true,
+    });
     expect(held.status).toBe("ok");
     expect(held.reading?.outdoorTempF).toBe(72.4);
     expect(held.observedAt).toBe("2026-06-21T15:30:00.000Z");
@@ -128,7 +131,10 @@ describe("poller resilience through gateway hiccups", () => {
     const recovered = await cycle(stubOk(payload("80.0")), "2026-06-21T15:31:30Z", onError);
     expect(recovered?.outdoorTempF).toBe(80);
 
-    const back = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:35Z"));
+    const back = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:35Z"), {
+      conditionIcon: null,
+      conditionStale: true,
+    });
     expect(back.reading?.outdoorTempF).toBe(80);
     expect(deriveFreshness(back.observedAt, Date.parse("2026-06-21T15:31:35Z"), CADENCE_SECONDS)).toBe(
       "fresh",

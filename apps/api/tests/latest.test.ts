@@ -110,6 +110,22 @@ describe("GET /api/v1/latest", () => {
     expect(Number.isNaN(Date.parse(body.serverTime))).toBe(false);
   });
 
+  it("threads the injected NWS condition into the envelope", async () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    const nws = {
+      refresh: async (): Promise<void> => {},
+      current: () => ({ conditionIcon: "clear" as const, conditionStale: false }),
+    };
+    const app = buildServer({ store, config, nws });
+    const res = await app.inject({ method: "GET", url: "/api/v1/latest" });
+    await app.close();
+
+    const body = res.json() as { conditionIcon: string; conditionStale: boolean };
+    expect(body.conditionIcon).toBe("clear");
+    expect(body.conditionStale).toBe(false);
+  });
+
   it("returns an explicit no-data envelope (never fabricated zeros) for an empty store", async () => {
     store = openReadStore(dbPath);
     const app = buildServer({ store, config });

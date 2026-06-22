@@ -94,7 +94,10 @@ describe("poll → store → API pipeline", () => {
     });
     expect(first?.outdoorTempF).toBe(72.4);
 
-    const snap1 = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:00Z"));
+    const snap1 = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:00Z"), {
+      conditionIcon: null,
+      conditionStale: true,
+    });
     expect(snap1.status).toBe("ok");
     expect(snap1.reading?.outdoorTempF).toBe(72.4);
     expect(snap1.reading?.dayHighF).toBe(72.4);
@@ -110,7 +113,10 @@ describe("poll → store → API pipeline", () => {
     });
     expect(second?.outdoorTempF).toBe(80);
 
-    const snap2 = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:33:00Z"));
+    const snap2 = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:33:00Z"), {
+      conditionIcon: null,
+      conditionStale: true,
+    });
     expect(snap2.reading?.outdoorTempF).toBe(80);
     expect(snap2.reading?.dayHighF).toBe(80);
     expect(snap2.reading?.dayLowF).toBe(72.4);
