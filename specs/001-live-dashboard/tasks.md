@@ -343,9 +343,9 @@ quickstart validation — concerns that span stories.
 - [X] T078 [P] Test + implement responsive layout in `apps/web/tests/render/responsive.test.ts` + `apps/web/src/styles.css`: two-column ≥900px; stacked single-column (Outdoors→Solar→Indoors→Rainfall→Barometer) below; iPad Air M2 landscape/portrait (FR-038/FR-039/FR-039a).
 - [X] T079 [P] Test + implement accessibility in `apps/web/tests/a11y.test.ts`: hamburger menu focus outline + ≥44px touch targets; headline dials legible at glance distance (FR-040/FR-041).
 - [X] T080 [P] Implement the hamburger menu + in-app nav (Live active; History/Trends/Records/Settings placeholders) in `apps/web/src/render/header.ts` (FR-003/FR-004a).
-- [ ] T081 [P] Add `apps/poller/Dockerfile`, `apps/api/Dockerfile`, `apps/web/Dockerfile` (build → nginx static), pinned base-image tags (no `latest`).
-- [ ] T082 Add `docker-compose.yml` (poller + api + web + backup sidecar; `restart: unless-stopped`; SQLite volume; pinned tags) per plan.md.
-- [ ] T083 [P] Add `scripts/backup-sqlite.sh` (online `.backup` to off-host target) + restore notes (Decision 11 / finding C1).
+- [X] T081 [P] Add `apps/poller/Dockerfile`, `apps/api/Dockerfile`, `apps/web/Dockerfile` (build → nginx static), pinned base-image tags (no `latest`).
+- [X] T082 Add `docker-compose.yml` (poller + api + web + backup sidecar; `restart: unless-stopped`; SQLite volume; pinned tags) per plan.md.
+- [X] T083 [P] Add `scripts/backup-sqlite.sh` (online `.backup` to off-host target) + restore notes (Decision 11 / finding C1).
 - [ ] T084 Run the [quickstart.md](quickstart.md) validation end-to-end (US7/US8/US9 flows + full-fidelity capture check + Eastern standard/DST date checks); record first-legible-paint timing on the Surface Pro 3 (SC-004) and the glance-readability check (SC-001); confirm `npm run typecheck` and `npm run test:coverage` are green at 100%.
 - [X] T085 [P] Test + implement an architectural import-boundary guard in `apps/api/tests/boundary.test.ts` (or a lint rule): assert only `apps/poller` depends on `gatewayClient` (the single cross-VLAN consumer, FR-044) and `apps/web` reaches data only via `api.ts`, never the store or gateway (FR-036).
 

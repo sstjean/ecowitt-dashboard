@@ -1,0 +1,15 @@
+# Keep the Docker build context lean and reproducible. Anything the image build
+# does not need is excluded so it never lands in a layer or busts the cache.
+**/node_modules
+**/coverage
+**/dist
+**/*.tsbuildinfo
+.git
+.github
+specs
+**/tests
+**/*.test.ts
+.env
+.env.local
+.env.*.local
+.DS_Store
