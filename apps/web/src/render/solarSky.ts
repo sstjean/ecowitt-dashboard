@@ -1,9 +1,9 @@
 import { el, svgEl } from "./dom.ts";
 import { easternMinutesOfDay, formatEasternTime } from "../format/eastern.ts";
 
-const ARC_PATH = "M4,100 A196,86 0 0 1 396,100";
+const ARC_PATH = "M20,100 A180,86 0 0 1 380,100";
 const CENTER_X = 200;
-const ARC_RADIUS_X = 196;
+const ARC_RADIUS_X = 180;
 const BASELINE_Y = 100;
 const DOME_HEIGHT = 86;
 
@@ -40,6 +40,31 @@ export function moonPhaseName(phase: number): string {
     return "Last Quarter";
   }
   return "Waning Crescent";
+}
+
+/**
+ * SVG path for the *illuminated* portion of the moon disk (centre `c`, radius
+ * `r`) at the given 0–1 phase (0/1 new, 0.25 first quarter, 0.5 full, 0.75 last).
+ * The lit limb is a fixed semicircle (right while waxing, left while waning) and
+ * the terminator is a half-ellipse whose width tracks the illuminated fraction,
+ * collapsing to a straight line at the quarters and to the limb itself at new
+ * (zero-area) / full (whole disk).
+ */
+export function moonLitPath(c: number, r: number, phase: number): string {
+  const angle = 2 * Math.PI * phase;
+  const cosA = Math.cos(angle);
+  const rx = Math.abs(r * cosA).toFixed(2);
+  const waxing = phase < 0.5;
+  const gibbous = cosA < 0;
+  const limbSweep = waxing ? 1 : 0;
+  const termSweep = waxing === gibbous ? 1 : 0;
+  const top = c - r;
+  const bottom = c + r;
+  return (
+    `M${c},${top} ` +
+    `A${r},${r} 0 0 ${limbSweep} ${c},${bottom} ` +
+    `A${rx},${r} 0 0 ${termSweep} ${c},${top} Z`
+  );
 }
 
 function readout(
@@ -91,7 +116,7 @@ export function renderSolarSky(
       "stroke-width": "3", "stroke-dasharray": "2 8", "stroke-linecap": "round",
     }),
     svgEl(doc, "line", {
-      x1: "4", y1: "100", x2: "396", y2: "100",
+      x1: "20", y1: "100", x2: "380", y2: "100",
       stroke: "var(--cp-border)", "stroke-width": "1",
     }),
     svgEl(doc, "circle", {
@@ -114,7 +139,9 @@ export function renderSolarSky(
       { class: "moon-icon", viewBox: "0 0 64 64", "aria-hidden": "true" },
       svgEl(doc, "circle", { cx: "32", cy: "32", r: "22", fill: "var(--cp-surface-soft)" }),
       svgEl(doc, "path", {
-        d: "M32 10a22 22 0 1 0 0 44 17 17 0 0 1 0-44z", fill: "var(--cp-text-soft)",
+        "data-moon-lit": "",
+        d: moonLitPath(32, 22, data.moonPhase),
+        fill: "var(--cp-text-soft)",
       }),
     ),
     el(doc, "div", { class: "moon-lbl", "data-moon-phase": "" }, moonPhaseName(data.moonPhase)),
@@ -144,25 +171,24 @@ export function renderSolarSky(
 
   const sunrise = new Date(data.sunriseUtc);
   const sunset = new Date(data.sunsetUtc);
-  const times = el(
+  // Labels stay parked at the dome feet; the time values sit on the baseline,
+  // pulled inward so the sun can pass them without covering the clock.
+  const labels = el(
     doc,
     "div",
     { class: "astro-times" },
-    readout(
-      doc,
-      el(doc, "span", {}, "☀ ", el(doc, "span", { "data-sunrise": "" }, formatEasternTime(sunrise))),
-      "Sunrise",
-      "read tl",
-    ),
-    readout(
-      doc,
-      el(doc, "span", {}, el(doc, "span", { "data-sunset": "" }, formatEasternTime(sunset)), " ☾"),
-      "Sunset",
-      "read tr",
-    ),
+    el(doc, "div", { class: "read tl" }, el(doc, "div", { class: "l" }, "Sunrise")),
+    el(doc, "div", { class: "read tr" }, el(doc, "div", { class: "l" }, "Sunset")),
+  );
+  const timeVals = el(
+    doc,
+    "div",
+    { class: "astro-time-vals" },
+    el(doc, "span", { class: "tl", "data-sunrise": "" }, formatEasternTime(sunrise)),
+    el(doc, "span", { class: "tr", "data-sunset": "" }, formatEasternTime(sunset)),
   );
 
-  const wrap = el(doc, "div", { class: "arc-wrap" }, arc, moon, center, times);
+  const wrap = el(doc, "div", { class: "arc-wrap" }, arc, moon, center, labels, timeVals);
   const astro = el(doc, "div", { class: "astro" }, wrap);
   const heading = el(doc, "h3", { class: "inline" }, "Solar & Sky");
 

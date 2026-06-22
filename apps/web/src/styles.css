@@ -526,6 +526,22 @@ body {
 .astro-times .read .l {
   font-size: 9px;
 }
+.astro-time-vals {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 6%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cp-text-soft);
+}
+.astro-time-vals .tr {
+  text-align: right;
+}
 .moon {
   position: absolute;
   right: 4px;
