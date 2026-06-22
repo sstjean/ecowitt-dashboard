@@ -73,10 +73,10 @@ on these.
 
 ### Store (SQLite, single writer)
 
-- [ ] T015 [P] Test: `apps/poller/tests/store.test.ts` against a temp SQLite file — schema bootstrap (`readings` table: `id`, `observed_at TEXT NOT NULL UNIQUE`, `metrics_json TEXT NOT NULL`, generated column `pressure_hpa`, `idx_readings_observed_at`), insert a validated `FullMetricMap`, reject duplicate `observed_at` (data-model.md §4).
-- [ ] T016 Implement `apps/poller/src/store.ts` (better-sqlite3 WAL; schema init + insert) to pass T015 (depends on T011).
-- [ ] T017 [P] Test: `apps/api/tests/store.test.ts` against a temp SQLite file — read latest reading; read 3-hour window (for the baro trend); empty store ⇒ no row.
-- [ ] T018 Implement `apps/api/src/store.ts` (read-only: latest + time-window queries, WAL) to pass T017 (depends on T011).
+- [X] T015 [P] Test: `apps/poller/tests/store.test.ts` against a temp SQLite file — schema bootstrap (`readings` table: `id`, `observed_at TEXT NOT NULL UNIQUE`, `metrics_json TEXT NOT NULL`, generated column `pressure_hpa`, `idx_readings_observed_at`), insert a validated `FullMetricMap`, reject duplicate `observed_at` (data-model.md §4).
+- [X] T016 Implement `apps/poller/src/store.ts` (better-sqlite3 WAL; schema init + insert) to pass T015 (depends on T011).
+- [X] T017 [P] Test: `apps/api/tests/store.test.ts` against a temp SQLite file — read latest reading; read 3-hour window (for the baro trend); empty store ⇒ no row.
+- [X] T018 Implement `apps/api/src/store.ts` (read-only: latest + time-window queries, WAL) to pass T017 (depends on T011).
 
 ### Config / env
 
