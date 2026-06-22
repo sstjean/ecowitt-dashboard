@@ -41,7 +41,6 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
       uvIndex: reading.uvIndex,
       sunriseUtc: snapshot.astro.sunriseUtc,
       sunsetUtc: snapshot.astro.sunsetUtc,
-      sunAltitudeFraction: snapshot.astro.sunAltitudeFraction,
       moonPhase: snapshot.astro.moonPhase,
     });
     renderIndoorRings(indoorHost, {

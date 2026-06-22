@@ -1,8 +1,9 @@
 import { el, svgEl } from "./dom.ts";
-import { formatEasternTime } from "../format/eastern.ts";
+import { easternMinutesOfDay, formatEasternTime } from "../format/eastern.ts";
 
 const ARC_PATH = "M4,100 A196,86 0 0 1 396,100";
 const CENTER_X = 200;
+const ARC_RADIUS_X = 196;
 const BASELINE_Y = 100;
 const DOME_HEIGHT = 86;
 
@@ -11,8 +12,6 @@ export interface SolarSkyData {
   uvIndex: number;
   sunriseUtc: string;
   sunsetUtc: string;
-  /** 0–1 height along the day arc (apex at midday, 0 before sunrise / after sunset). */
-  sunAltitudeFraction: number;
   /** 0–1 lunar cycle (0/1 new, 0.5 full). */
   moonPhase: number;
 }
@@ -59,17 +58,29 @@ function readout(
 }
 
 /**
- * Render the Solar & Sky panel: a day-arc dome with a sun marker whose height
- * tracks `sunAltitudeFraction` (apex at midday, resting dim on the baseline
- * before sunrise / after sunset), the solar W/m² and UV readouts, the Eastern
- * sunrise/sunset times, and the named moon phase.
+ * Render the Solar & Sky panel: a day-arc dome with a sun marker that walks
+ * along the arc by day-progress — left at sunrise, apex at solar noon, right at
+ * sunset — resting dim on the baseline overnight (FR matches the prototype),
+ * the solar W/m² and UV readouts, the Eastern sunrise/sunset times, and the
+ * named moon phase. `now` defaults to the live wall-clock so the sun advances
+ * with each refresh.
  */
-export function renderSolarSky(container: HTMLElement, data: SolarSkyData): void {
+export function renderSolarSky(
+  container: HTMLElement,
+  data: SolarSkyData,
+  now: Date = new Date(),
+): void {
   const doc = container.ownerDocument;
 
-  const frac = data.sunAltitudeFraction;
-  const isNight = frac <= 0;
-  const cy = BASELINE_Y - DOME_HEIGHT * frac;
+  // Day-progress 0→1 across the daylight span (Eastern), then map onto the dome.
+  const sunriseMin = easternMinutesOfDay(new Date(data.sunriseUtc));
+  const sunsetMin = easternMinutesOfDay(new Date(data.sunsetUtc));
+  const nowMin = easternMinutesOfDay(now);
+  const frac = Math.max(0, Math.min(1, (nowMin - sunriseMin) / (sunsetMin - sunriseMin)));
+  const theta = Math.PI * (1 - frac);
+  const cx = CENTER_X + ARC_RADIUS_X * Math.cos(theta);
+  const cy = BASELINE_Y - DOME_HEIGHT * Math.sin(theta);
+  const isDay = nowMin >= sunriseMin && nowMin <= sunsetMin;
 
   const arc = svgEl(
     doc,
@@ -85,11 +96,11 @@ export function renderSolarSky(container: HTMLElement, data: SolarSkyData): void
     }),
     svgEl(doc, "circle", {
       "data-sun-marker": "",
-      cx: String(CENTER_X),
-      cy: cy.toFixed(0),
+      cx: cx.toFixed(1),
+      cy: cy.toFixed(1),
       r: "9",
-      fill: isNight ? "var(--cp-text-muted)" : "#ffd54a",
-      opacity: isNight ? "0.35" : "1",
+      fill: isDay ? "#ffd54a" : "var(--cp-text-muted)",
+      opacity: isDay ? "1" : "0.35",
     }),
   );
 

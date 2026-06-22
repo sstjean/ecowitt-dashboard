@@ -23,6 +23,22 @@ const clockFormat = new Intl.DateTimeFormat("en-US", {
   hour12: true,
 });
 
+const minutesFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+/** Minutes since midnight (0–1439) for the given instant, in America/New_York. */
+export function easternMinutesOfDay(date: Date): number {
+  const parts = minutesFormat.formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes): number =>
+    Number(parts.find((p) => p.type === type)!.value);
+  // `hour: "2-digit"` with hour12:false renders midnight as "24"; normalise to 0.
+  return (get("hour") % 24) * 60 + get("minute");
+}
+
 function ordinalSuffix(day: number): string {
   const tens = day % 100;
   if (tens >= 11 && tens <= 13) {
