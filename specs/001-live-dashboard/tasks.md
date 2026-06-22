@@ -115,19 +115,19 @@ with no manual refresh.
 
 ### Tests (write first, must fail)
 
-- [ ] T031 [P] [US1] Test: `apps/web/tests/render/tempScale.test.ts` — `tempF→color` visible-spectrum interpolation (violet→red, ~10–120°F); ≥100°F maps to a legible hot red, smooth/no banding (FR-012/FR-013, data-model.md §9).
-- [ ] T032 [P] [US1] Test: `apps/web/tests/render/outdoorRing.test.ts` — renders current °F centerpiece + day high (↑) / low (↓), and Feels Like / Dewpoint / Outdoor-Humidity readouts with units (FR-009/FR-010/FR-011).
-- [ ] T033 [P] [US1] Test: `apps/web/tests/render/feelsLikeRing.test.ts` — Feels Like companion ring uses the shared temp scale and colours correctly at 105°F (FR-011a/FR-011b).
-- [ ] T034 [P] [US1] Test: `apps/web/tests/render/header.test.ts` — three-zone header; date centered with ordinal, time right-aligned 12-hour, ticking every second in Eastern (FR-004/FR-005/FR-006/FR-007).
-- [ ] T035 [P] [US1] Test: `apps/web/tests/render/liveUpdate.test.ts` — a newer snapshot re-renders the outdoor ring, Feels Like ring, and header without user interaction (FR-008, US1 scenario 4).
+- [X] T031 [P] [US1] Test: `apps/web/tests/render/tempScale.test.ts` — `tempF→color` visible-spectrum interpolation (violet→red, ~10–120°F); ≥100°F maps to a legible hot red, smooth/no banding (FR-012/FR-013, data-model.md §9).
+- [X] T032 [P] [US1] Test: `apps/web/tests/render/outdoorRing.test.ts` — renders current °F centerpiece + day high (↑) / low (↓), and Feels Like / Dewpoint / Outdoor-Humidity readouts with units (FR-009/FR-010/FR-011).
+- [X] T033 [P] [US1] Test: `apps/web/tests/render/feelsLikeRing.test.ts` — Feels Like companion ring uses the shared temp scale and colours correctly at 105°F (FR-011a/FR-011b).
+- [X] T034 [P] [US1] Test: `apps/web/tests/render/header.test.ts` — three-zone header; date centered with ordinal, time right-aligned 12-hour, ticking every second in Eastern (FR-004/FR-005/FR-006/FR-007).
+- [X] T035 [P] [US1] Test: `apps/web/tests/render/liveUpdate.test.ts` — a newer snapshot re-renders the outdoor ring, Feels Like ring, and header without user interaction (FR-008, US1 scenario 4).
 
 ### Implementation
 
-- [ ] T036 [P] [US1] Implement `apps/web/src/render/tempScale.ts` (pure visible-spectrum colour scale) to pass T031.
-- [ ] T037 [US1] Implement `apps/web/src/render/outdoorRing.ts` (ring + ↑/↓ + supporting readouts) to pass T032 (depends on T036).
-- [ ] T038 [US1] Implement `apps/web/src/render/feelsLikeRing.ts` (companion ring) to pass T033 (depends on T036).
-- [ ] T039 [US1] Implement `apps/web/src/render/header.ts` (three-zone header + 1 s clock tick via Eastern formatters) to pass T034 (depends on T026).
-- [ ] T040 [US1] Wire outdoor ring, Feels Like ring, and header into `apps/web/src/render/index.ts` + `index.html` left column so a new snapshot updates all three to pass T035 (depends on T037, T038, T039).
+- [X] T036 [P] [US1] Implement `apps/web/src/render/tempScale.ts` (pure visible-spectrum colour scale) to pass T031.
+- [X] T037 [US1] Implement `apps/web/src/render/outdoorRing.ts` (ring + ↑/↓ + supporting readouts) to pass T032 (depends on T036).
+- [X] T038 [US1] Implement `apps/web/src/render/feelsLikeRing.ts` (companion ring) to pass T033 (depends on T036).
+- [X] T039 [US1] Implement `apps/web/src/render/header.ts` (three-zone header + 1 s clock tick via Eastern formatters) to pass T034 (depends on T026).
+- [X] T040 [US1] Wire outdoor ring, Feels Like ring, and header into `apps/web/src/render/index.ts` + `index.html` left column so a new snapshot updates all three to pass T035 (depends on T037, T038, T039).
 
 **Checkpoint**: US1 fully renders from a mocked snapshot — the MVP headline view.
 

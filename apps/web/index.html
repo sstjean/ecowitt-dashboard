@@ -8,16 +8,19 @@
   </head>
   <body>
     <div id="app">
-      <header class="app-header">
-        <h1 class="app-title">Live Weather</h1>
-        <div class="app-clock">
-          <span class="header-date" data-header-date></span>
-          <span class="header-time" data-header-time></span>
+      <main class="stage">
+        <div class="col col-left">
+          <section class="card" data-panel="outdoor">
+            <h3>Outdoors</h3>
+            <div class="out-gauges">
+              <div class="gauge" data-ring="outdoor"></div>
+              <div data-ring="feels"></div>
+            </div>
+          </section>
         </div>
-      </header>
-      <main class="panel-grid">
-        <section class="panel panel-primary" data-panel="outdoor"></section>
-        <section class="panel panel-secondary" data-panel="conditions"></section>
+        <div class="col col-right">
+          <section class="card" data-panel="conditions"></section>
+        </div>
       </main>
     </div>
     <script type="module" src="/src/bootstrap.ts"></script>

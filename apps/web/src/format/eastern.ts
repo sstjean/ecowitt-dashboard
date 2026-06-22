@@ -15,6 +15,14 @@ const timeFormat = new Intl.DateTimeFormat("en-US", {
   hour12: true,
 });
 
+const clockFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: TIME_ZONE,
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: true,
+});
+
 function ordinalSuffix(day: number): string {
   const tens = day % 100;
   if (tens >= 11 && tens <= 13) {
@@ -47,4 +55,9 @@ export function formatEasternDate(date: Date): string {
 /** "6:05 PM" in America/New_York (12-hour). */
 export function formatEasternTime(date: Date): string {
   return timeFormat.format(date);
+}
+
+/** "6:05:09 PM" in America/New_York (12-hour, with seconds) for the live clock. */
+export function formatEasternClock(date: Date): string {
+  return clockFormat.format(date);
 }
