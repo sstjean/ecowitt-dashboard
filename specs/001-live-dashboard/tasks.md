@@ -40,13 +40,13 @@ with `src/` and `tests/`. Repo-root infra: `package.json`, `tsconfig.base.json`,
 
 **Purpose**: Monorepo scaffolding, toolchain, and the 100%-coverage CI gate.
 
-- [ ] T001 Create the npm-workspaces root: `package.json` (workspaces = `packages/*`, `apps/*`; scripts `typecheck`, `test`, `test:coverage`), `tsconfig.base.json` (ES modules, strict), and `.gitignore` (node_modules, `.env.local`, SQLite files) per plan.md.
-- [ ] T002 [P] Scaffold the `packages/shared` workspace: `packages/shared/package.json`, `packages/shared/tsconfig.json`, `packages/shared/vitest.config.ts` (v8 coverage, 100% thresholds), empty `packages/shared/src/index.ts`.
-- [ ] T003 [P] Scaffold the `apps/poller` workspace: `apps/poller/package.json` (deps: better-sqlite3, zod, shared), `apps/poller/tsconfig.json`, `apps/poller/vitest.config.ts` (100% thresholds).
-- [ ] T004 [P] Scaffold the `apps/api` workspace: `apps/api/package.json` (deps: fastify, better-sqlite3, suncalc, zod, shared), `apps/api/tsconfig.json`, `apps/api/vitest.config.ts` (100% thresholds).
-- [ ] T005 [P] Scaffold the `apps/web` workspace: `apps/web/package.json` (deps: vite, shared), `apps/web/tsconfig.json`, `apps/web/vite.config.ts`, `apps/web/vitest.config.ts` (jsdom, 100% thresholds), `apps/web/index.html` stub.
-- [ ] T006 [P] Add `.env.example` documenting every IngestionConfiguration key (data-model.md §10): `GATEWAY_BASE_URL`, `POLL_CADENCE_SECONDS`, `UI_REFRESH_SECONDS`, `HOUSEHOLD_LAT`, `HOUSEHOLD_LON`, `RAIN_FULL_SCALE_IN`, `BARO_TREND_WINDOW_HOURS`, `BARO_STEADY_EPSILON_HPA`, `NWS_USER_AGENT`, `NWS_CACHE_TTL_SECONDS`, `NWS_STALE_AFTER_SECONDS`, `NWS_TIMEOUT_MS`, `SQLITE_PATH` — no values committed (FR-055).
-- [ ] T007 [P] Add `.github/workflows/ci.yml`: install, `npm run typecheck` (all workspaces), `npm run test:coverage` with the 100% gate and zero-warning policy (FR-057, constitution DevOps).
+- [X] T001 Create the npm-workspaces root: `package.json` (workspaces = `packages/*`, `apps/*`; scripts `typecheck`, `test`, `test:coverage`), `tsconfig.base.json` (ES modules, strict), and `.gitignore` (node_modules, `.env.local`, SQLite files) per plan.md.
+- [X] T002 [P] Scaffold the `packages/shared` workspace: `packages/shared/package.json`, `packages/shared/tsconfig.json`, `packages/shared/vitest.config.ts` (v8 coverage, 100% thresholds), empty `packages/shared/src/index.ts`.
+- [X] T003 [P] Scaffold the `apps/poller` workspace: `apps/poller/package.json` (deps: better-sqlite3, zod, shared), `apps/poller/tsconfig.json`, `apps/poller/vitest.config.ts` (100% thresholds).
+- [X] T004 [P] Scaffold the `apps/api` workspace: `apps/api/package.json` (deps: fastify, better-sqlite3, suncalc, zod, shared), `apps/api/tsconfig.json`, `apps/api/vitest.config.ts` (100% thresholds).
+- [X] T005 [P] Scaffold the `apps/web` workspace: `apps/web/package.json` (deps: vite, shared), `apps/web/tsconfig.json`, `apps/web/vite.config.ts`, `apps/web/vitest.config.ts` (jsdom, 100% thresholds), `apps/web/index.html` stub.
+- [X] T006 [P] Add `.env.example` documenting every IngestionConfiguration key (data-model.md §10): `GATEWAY_BASE_URL`, `POLL_CADENCE_SECONDS`, `UI_REFRESH_SECONDS`, `HOUSEHOLD_LAT`, `HOUSEHOLD_LON`, `RAIN_FULL_SCALE_IN`, `BARO_TREND_WINDOW_HOURS`, `BARO_STEADY_EPSILON_HPA`, `NWS_USER_AGENT`, `NWS_CACHE_TTL_SECONDS`, `NWS_STALE_AFTER_SECONDS`, `NWS_TIMEOUT_MS`, `SQLITE_PATH` — no values committed (FR-055).
+- [X] T007 [P] Add `.github/workflows/ci.yml`: install, `npm run typecheck` (all workspaces), `npm run test:coverage` with the 100% gate and zero-warning policy (FR-057, constitution DevOps).
 
 **Checkpoint**: `npm install`, `npm run typecheck`, and `npm run test:coverage` all run green on the empty scaffold.
 

@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment / secrets (FR-055 — no value-bearing config in source control)
+.env
+.env.local
+.env.*.local
+
+# SQLite data + WAL sidecars
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# Coverage
+coverage/
+
+# Logs / temp
+*.log
+*.tmp
+*.swp
+
+# OS / editor
+.DS_Store
+Thumbs.db
