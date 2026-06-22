@@ -9,6 +9,7 @@ function shell(): HTMLElement {
         <div class="gauge" data-ring="outdoor"></div>
         <div data-ring="feels"></div>
         <div data-ring="wind"></div>
+        <section data-panel="rain"></section>
       </main>
     </div>`;
   return document.getElementById("app")!;

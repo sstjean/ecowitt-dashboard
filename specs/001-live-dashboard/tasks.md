@@ -224,11 +224,11 @@ inches.
 
 ### Tests (write first, must fail)
 
-- [ ] T057 [P] [US3] Test: `apps/web/tests/render/rainfall.test.ts` — droplet fill fraction vs `RAIN_FULL_SCALE_IN` (empty / partial / full / clamped-over-cap with blue→amber→red escalation), all six totals rendered in inches, the rain **rate** in in/hr, and the **raining-now** indicator shown only when the piezo flag is set (FR-027–FR-030, FR-028a, FR-029a, FR-029b).
+- [X] T057 [P] [US3] Test: `apps/web/tests/render/rainfall.test.ts` — droplet fill fraction vs `RAIN_FULL_SCALE_IN` (empty / partial / full / clamped-over-cap with blue→amber→red escalation), all six totals rendered in inches, the rain **rate** in in/hr, and the **raining-now** indicator shown only when the piezo flag is set (FR-027–FR-030, FR-028a, FR-029a, FR-029b).
 
 ### Implementation
 
-- [ ] T058 [US3] Implement `apps/web/src/render/rainfall.ts` (droplet fill + clamp + colour escalation + six totals + rain rate (in/hr) + a "raining now" indicator — all sourced from the `piezoRain` gauge upstream, T012; the panel is still **labelled "Rain"**) and wire into the right column to pass T057.
+- [X] T058 [US3] Implement `apps/web/src/render/rainfall.ts` (droplet fill + clamp + colour escalation + six totals + rain rate (in/hr) + a "raining now" indicator — all sourced from the `piezoRain` gauge upstream, T012; the panel is still **labelled "Rain"**) and wire into the right column to pass T057.
 
 **Checkpoint**: Rainfall panel renders independently from a snapshot.
 

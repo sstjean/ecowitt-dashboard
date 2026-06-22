@@ -2,6 +2,7 @@ import type { LatestSnapshot } from "@ecowitt/shared";
 import { renderOutdoorRing } from "./outdoorRing.ts";
 import { renderFeelsLikeRing } from "./feelsLikeRing.ts";
 import { renderWindCompass } from "./windCompass.ts";
+import { renderRainfall } from "./rainfall.ts";
 import { renderMissingState } from "./freshness.ts";
 import { createHeader } from "./header.ts";
 
@@ -16,9 +17,11 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
     const outdoorHost = root.querySelector<HTMLElement>("[data-ring='outdoor']")!;
     const feelsHost = root.querySelector<HTMLElement>("[data-ring='feels']")!;
     const windHost = root.querySelector<HTMLElement>("[data-ring='wind']")!;
+    const rainHost = root.querySelector<HTMLElement>("[data-panel='rain']")!;
     renderOutdoorRing(outdoorHost, reading);
     renderFeelsLikeRing(feelsHost, { feelsLikeF: reading.feelsLikeF });
     renderWindCompass(windHost, reading);
+    renderRainfall(rainHost, reading);
   } else {
     renderMissingState(root);
   }
