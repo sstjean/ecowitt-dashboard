@@ -10,6 +10,14 @@ export interface HeaderHandle {
   start(now?: () => Date): () => void;
 }
 
+/** A single nav entry. The active page is current; the rest are placeholders. */
+function navItem(doc: Document, label: string, active: boolean): HTMLElement {
+  const attrs = active
+    ? { class: "nav-item active", "aria-current": "page" }
+    : { class: "nav-item", "aria-disabled": "true" };
+  return el(doc, "button", attrs, label);
+}
+
 /** Build the three-zone header: menu button, centred date, right-aligned clock. */
 export function createHeader(doc: Document): HeaderHandle {
   const menuIcon = svgEl(
@@ -26,7 +34,25 @@ export function createHeader(doc: Document): HeaderHandle {
   );
   const date = el(doc, "div", { class: "h-date" }, "—");
   const time = el(doc, "div", { class: "h-time" }, "--:--:--");
-  const element = el(doc, "header", { class: "header" }, hamburger, date, time);
+
+  // In-app navigation: Live is the active page; History/Trends/Records/Settings
+  // are placeholders until their views land. Collapsed behind the hamburger.
+  const nav = el(
+    doc,
+    "nav",
+    { class: "h-nav", hidden: "" },
+    navItem(doc, "Live", true),
+    navItem(doc, "History", false),
+    navItem(doc, "Trends", false),
+    navItem(doc, "Records", false),
+    navItem(doc, "Settings", false),
+  );
+  hamburger.addEventListener("click", () => {
+    nav.hidden = !nav.hidden;
+    hamburger.setAttribute("aria-expanded", String(!nav.hidden));
+  });
+
+  const element = el(doc, "header", { class: "header" }, hamburger, date, time, nav);
 
   function update(at: Date): void {
     date.textContent = formatEasternDate(at);

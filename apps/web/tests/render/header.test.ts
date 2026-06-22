@@ -49,4 +49,36 @@ describe("createHeader", () => {
     expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:09 PM");
     stop();
   });
+
+  it("offers in-app nav with Live active and the rest as placeholders", () => {
+    const header = createHeader(document);
+    const items = [...header.element.querySelectorAll(".nav-item")].map((n) => n.textContent);
+    expect(items).toEqual(["Live", "History", "Trends", "Records", "Settings"]);
+
+    const live = header.element.querySelector(".nav-item.active")!;
+    expect(live.textContent).toBe("Live");
+    expect(live.getAttribute("aria-current")).toBe("page");
+    expect(
+      header.element.querySelector<HTMLElement>('.nav-item:not(.active)')!.getAttribute(
+        "aria-disabled",
+      ),
+    ).toBe("true");
+  });
+
+  it("toggles the nav open and closed from the hamburger, tracking aria-expanded", () => {
+    const header = createHeader(document);
+    const hamburger = header.element.querySelector<HTMLButtonElement>(".hamburger")!;
+    const nav = header.element.querySelector<HTMLElement>(".h-nav")!;
+
+    expect(nav.hidden).toBe(true);
+    expect(hamburger.getAttribute("aria-expanded")).toBe("false");
+
+    hamburger.click();
+    expect(nav.hidden).toBe(false);
+    expect(hamburger.getAttribute("aria-expanded")).toBe("true");
+
+    hamburger.click();
+    expect(nav.hidden).toBe(true);
+    expect(hamburger.getAttribute("aria-expanded")).toBe("false");
+  });
 });
