@@ -14,6 +14,9 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+      # npm 10.x drops platform-specific optional deps (rolldown native binding)
+      # on `npm ci` — npm/cli#4828. npm 11 installs them correctly.
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:coverage
@@ -26,6 +29,9 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+      # npm 10.x drops platform-specific optional deps (rolldown native binding)
+      # on `npm ci` — npm/cli#4828. npm 11 installs them correctly.
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
