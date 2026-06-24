@@ -346,7 +346,7 @@ quickstart validation — concerns that span stories.
 - [X] T081 [P] Add `apps/poller/Dockerfile`, `apps/api/Dockerfile`, `apps/web/Dockerfile` (build → nginx static), pinned base-image tags (no `latest`).
 - [X] T082 Add `docker-compose.yml` (poller + api + web + backup sidecar; `restart: unless-stopped`; SQLite volume; pinned tags) per plan.md.
 - [X] T083 [P] Add `scripts/backup-sqlite.sh` (online `.backup` to off-host target) + restore notes (Decision 11 / finding C1).
-- [ ] T084 Run the [quickstart.md](quickstart.md) validation end-to-end (US7/US8/US9 flows + full-fidelity capture check + Eastern standard/DST date checks); record first-legible-paint timing on the Surface Pro 3 (SC-004) and the glance-readability check (SC-001); confirm `npm run typecheck` and `npm run test:coverage` are green at 100%.
+- [ ] T084 Run the [quickstart.md](quickstart.md) validation end-to-end (US7/US8/US9 flows + full-fidelity capture check + Eastern standard/DST date checks); record first-legible-paint timing on the Surface Pro 3 (SC-004) and the glance-readability check (SC-001); confirm `npm run typecheck` and `npm run test:coverage` are green at 100%. **Automatable half done** (typecheck clean, coverage 100%, 6 e2e pass). **Remaining manual on-site checks (LAN + Surface Pro 3) tracked in issue #13, target 2026-06-26.**
 - [X] T085 [P] Test + implement an architectural import-boundary guard in `apps/api/tests/boundary.test.ts` (or a lint rule): assert only `apps/poller` depends on `gatewayClient` (the single cross-VLAN consumer, FR-044) and `apps/web` reaches data only via `api.ts`, never the store or gateway (FR-036).
 
 ---
