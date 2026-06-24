@@ -123,16 +123,16 @@ describe("mountDashboard", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-19T18:05:09Z"));
     const dashboard = mountDashboard(root);
-    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:09 PM");
+    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:09 pm");
 
     vi.advanceTimersByTime(1000);
-    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 PM");
+    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 pm");
 
     dashboard.update(okSnap());
     expect(root.querySelector("[data-out-temp]")?.textContent).toBe("72");
 
     dashboard.stop();
     vi.advanceTimersByTime(1000);
-    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 PM");
+    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 pm");
   });
 });

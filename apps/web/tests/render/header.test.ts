@@ -20,7 +20,7 @@ describe("createHeader", () => {
       "Friday, June 19th, 2026",
     );
     // 18:05:09 UTC = 2:05:09 PM EDT
-    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:09 PM");
+    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:09 pm");
   });
 
   it("ticks the clock every second from the injected clock", () => {
@@ -28,17 +28,17 @@ describe("createHeader", () => {
     let now = new Date("2026-06-19T18:05:09Z");
     const header = createHeader(document);
     const stop = header.start(() => now);
-    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:09 PM");
+    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:09 pm");
 
     now = new Date("2026-06-19T18:05:10Z");
     vi.advanceTimersByTime(1000);
-    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:10 PM");
+    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:10 pm");
 
     stop();
     now = new Date("2026-06-19T18:05:11Z");
     vi.advanceTimersByTime(1000);
     // stopped: no further updates
-    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:10 PM");
+    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:10 pm");
   });
 
   it("defaults the clock to the system time", () => {
@@ -46,7 +46,7 @@ describe("createHeader", () => {
     vi.setSystemTime(new Date("2026-06-19T18:05:09Z"));
     const header = createHeader(document);
     const stop = header.start();
-    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:09 PM");
+    expect(header.element.querySelector(".h-time")?.textContent).toBe("2:05:09 pm");
     stop();
   });
 

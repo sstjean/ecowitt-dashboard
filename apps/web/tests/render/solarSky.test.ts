@@ -81,8 +81,8 @@ describe("renderSolarSky", () => {
 
     expect(container.querySelector("[data-solar]")?.textContent).toBe("612");
     expect(container.querySelector("[data-uv]")?.textContent).toBe("5");
-    expect(container.querySelector("[data-sunrise]")?.textContent).toBe("5:25 AM");
-    expect(container.querySelector("[data-sunset]")?.textContent).toBe("8:31 PM");
+    expect(container.querySelector("[data-sunrise]")?.textContent).toBe("5:25 am");
+    expect(container.querySelector("[data-sunset]")?.textContent).toBe("8:31 pm");
   });
 
   it("names the current moon phase", () => {

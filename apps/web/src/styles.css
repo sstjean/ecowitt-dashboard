@@ -89,6 +89,11 @@ body {
   font-weight: 600;
   color: var(--cp-text);
 }
+.h-date .ord {
+  font-size: 0.6em;
+  vertical-align: 0.45em;
+  line-height: 0;
+}
 .h-time {
   justify-self: end;
   font-size: 28px;
