@@ -82,7 +82,7 @@ Rationale / Alternatives rejected.
 - **Alternatives rejected**: Using `data.rainfall` (would surface dead zeros during rain —
   the exact bug the project exists to avoid).
 
-## D7 — Rain weekly/monthly/yearly mapping (RESOLVED GAP → OPEN QUESTION)
+## D7 — Rain weekly/monthly/yearly mapping (LOCKED 2026-06-24)
 
 - **Gap**: The spec's Field Mapping appendix lists only event / rain_rate / hourly / daily
   for `piezoRain` (`0x0D`, `0x0E`, `0x7C`, `0x10`). But the strict `mappedReadingSchema`
@@ -96,12 +96,10 @@ Rationale / Alternatives rejected.
 - **Rationale**: Keeping the strict schema (a Locked Decision) makes these three fields
   load-bearing; the cloud provides them in the same group, so mapping them is faithful and
   requires no schema change and no synthesis.
-- **⚠ OPEN QUESTION for Steve**: The appendix omitted these three rows. Confirm that
-  `rainfall_piezo.weekly/monthly/yearly` are present in your device's cloud `real_time`
-  payload and that mapping `0x11/0x12/0x13` from them is correct. If your device does **not**
-  emit them in `real_time`, we need an explicit ruling (synthesize-from-daily, or relax the
-  three fields) — this is the one place the locked appendix and the locked strict schema are
-  in tension. Capture a live `real_time` payload during quickstart to settle it.
+- **RULING (Steve, 2026-06-24)**: Map `0x11/0x12/0x13` from
+  `rainfall_piezo.weekly/monthly/yearly` (option 1). No synthesis, no schema relaxation.
+  **Verify presence with a live `real_time` capture during quickstart**; if the device turns
+  out not to emit them, re-open this decision then. Until then this mapping is authoritative.
 
 ## D8 — Request units default to display units; pressure in inHg
 
@@ -170,7 +168,7 @@ Rationale / Alternatives rejected.
 | Two missing required fields | D4 — synthesize `0x19`/`0x6D` (Decision A) |
 | `isRaining` with no `srain` flag | D5 — synthesize `srain_piezo` from `rain_rate` |
 | Rain group source | D6 — piezo only |
-| weekly/monthly/yearly rain | D7 — map from `rainfall_piezo.*` (⚠ confirm with live payload) |
+| weekly/monthly/yearly rain | D7 — map from `rainfall_piezo.weekly/monthly/yearly` (LOCKED; verify at quickstart) |
 | Unit ids / pressure | D8 — display units; pressure inHg |
 | `call_back` scope | D9 — six mapped groups |
 | Config switch + creds | D10 — zod, default `gateway`, conditional cloud creds |
