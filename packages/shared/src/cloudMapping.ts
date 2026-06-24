@@ -40,7 +40,7 @@ export function cloudRealtimeToGateway(data: unknown): GatewayResponse {
     { id: "srain_piezo", val: isRaining ? "1" : "0" },
     { id: "0x0D", val: d.rainfall_piezo.event.value, unit: "in" },
     { id: "0x0E", val: d.rainfall_piezo.rain_rate.value, unit: "in/hr" },
-    { id: "0x7C", val: d.rainfall_piezo.hourly.value, unit: "in" },
+    { id: "0x7C", val: d.rainfall_piezo["1_hour"].value, unit: "in" },
     { id: "0x10", val: d.rainfall_piezo.daily.value, unit: "in" },
     { id: "0x11", val: d.rainfall_piezo.weekly.value, unit: "in" },
     { id: "0x12", val: d.rainfall_piezo.monthly.value, unit: "in" },

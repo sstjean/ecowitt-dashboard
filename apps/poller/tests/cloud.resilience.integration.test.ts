@@ -50,7 +50,7 @@ function cloudEnvelope(outdoorTempF: string): unknown {
       rainfall_piezo: {
         rain_rate: metric("0.00"),
         event: metric("0.10"),
-        hourly: metric("0.20"),
+        "1_hour": metric("0.20"),
         daily: metric("0.30"),
         weekly: metric("0.40"),
         monthly: metric("1.50"),

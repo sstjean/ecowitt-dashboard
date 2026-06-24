@@ -41,7 +41,7 @@ function cloudData(overrides: Record<string, unknown> = {}): Record<string, unkn
     rainfall_piezo: {
       rain_rate: metric("0.00", "in/hr"),
       event: metric("0.10", "in"),
-      hourly: metric("0.20", "in"),
+      "1_hour": metric("0.20", "in"),
       daily: metric("0.30", "in"),
       weekly: metric("0.40", "in"),
       monthly: metric("1.50", "in"),
@@ -149,7 +149,7 @@ describe("cloudRealtimeToGateway", () => {
         rainfall_piezo: {
           rain_rate: metric("0.50", "in/hr"),
           event: metric("0.10", "in"),
-          hourly: metric("0.20", "in"),
+          "1_hour": metric("0.20", "in"),
           daily: metric("0.30", "in"),
           weekly: metric("0.40", "in"),
           monthly: metric("1.50", "in"),

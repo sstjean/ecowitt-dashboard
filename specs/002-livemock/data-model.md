@@ -30,8 +30,9 @@ The Ecowitt cloud envelope from `GET /api/v3/device/real_time`:
     "pressure":       { "relative": { "unit": "inHg", "value": "30.01" },
                         "absolute": { "unit": "inHg", "value": "29.74" } },
     "rainfall_piezo": { "rain_rate": { "unit": "in/hr", "value": "0.00" },
-                        "event": { ... }, "hourly": { ... }, "daily": { ... },
-                        "weekly": { ... }, "monthly": { ... }, "yearly": { ... } }
+                        "event": { ... }, "1_hour": { ... }, "daily": { ... },
+                        "weekly": { ... }, "monthly": { ... }, "yearly": { ... },
+                        "state": { ... }, "24_hours": { ... } }
   }
 }
 ```
@@ -48,9 +49,10 @@ The Ecowitt cloud envelope from `GET /api/v3/device/real_time`:
   **fetcher** separately treats `code !== 0` as a typed failure (D2) before the adapter is
   ever called.
 
-> The exact nesting of `data` (e.g. whether `rainfall_piezo` carries weekly/monthly/yearly)
-> is **LOCKED** to the `rainfall_piezo` group per research **D7**; it is verified against a
-> captured live payload during quickstart (T014).
+> The exact nesting of `data` is **verified against a captured live payload** (research **D7**,
+> quickstart T014). Confirmed on a live GW2000B: `rainfall_piezo` carries `weekly`/`monthly`/`yearly`
+> (D7 settled), the hourly total is keyed **`1_hour`** (not `hourly`), and the device also emits
+> `state` and `24_hours`, which are tolerated (loose) and ignored.
 
 ---
 
@@ -82,7 +84,7 @@ Shape per `gatewayResponseSchema`: `{ common_list[], wh25[1], piezoRain[≥1], r
     { "id": "srain_piezo", "val": "<rain_rate>0 ? 1 : 0>" },             // SYNTHESIZED isRaining source (D5)
     { "id": "0x0D", "val": "<rainfall_piezo.event>",    "unit": "in" },
     { "id": "0x0E", "val": "<rainfall_piezo.rain_rate>","unit": "in/hr" },
-    { "id": "0x7C", "val": "<rainfall_piezo.hourly>",   "unit": "in" },
+    { "id": "0x7C", "val": "<rainfall_piezo.1_hour>",   "unit": "in" },
     { "id": "0x10", "val": "<rainfall_piezo.daily>",    "unit": "in" },
     { "id": "0x11", "val": "<rainfall_piezo.weekly>",   "unit": "in" },  // D7 — LOCKED (verify at quickstart)
     { "id": "0x12", "val": "<rainfall_piezo.monthly>",  "unit": "in" },  // D7 — LOCKED (verify at quickstart)
@@ -128,7 +130,7 @@ strict schema requires (see research D4/D5/D7):
 | `relPressureHpa` | `wh25.rel` (inHg→hPa) | `pressure.relative` | mapper converts |
 | `rainEventIn` | `piezoRain 0x0D` | `rainfall_piezo.event` | |
 | `rainRateInHr` | `piezoRain 0x0E` | `rainfall_piezo.rain_rate` | |
-| `rainHourlyIn` | `piezoRain 0x7C` | `rainfall_piezo.hourly` | |
+| `rainHourlyIn` | `piezoRain 0x7C` | `rainfall_piezo.1_hour` | |
 | `rainDailyIn` | `piezoRain 0x10` | `rainfall_piezo.daily` | |
 | `rainWeeklyIn` | `piezoRain 0x11` | `rainfall_piezo.weekly` | D7 — LOCKED (verify at quickstart) |
 | `rainMonthlyIn` | `piezoRain 0x12` | `rainfall_piezo.monthly` | D7 — LOCKED (verify at quickstart) |

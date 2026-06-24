@@ -401,7 +401,7 @@ mapper consumes exactly as follows (locked per Feature #11):
 | `relPressureHpa`      | `wh25.rel` (inHg→hPa)   | `pressure.relative`         |
 | `rainEventIn`         | `piezoRain 0x0D`        | `rainfall_piezo.event`      |
 | `rainRateInHr`        | `piezoRain 0x0E`        | `rainfall_piezo.rain_rate`  |
-| `rainHourlyIn`        | `piezoRain 0x7C`        | `rainfall_piezo.hourly`     |
+| `rainHourlyIn`        | `piezoRain 0x7C`        | `rainfall_piezo.1_hour`     |
 | `rainDailyIn`         | `piezoRain 0x10`        | `rainfall_piezo.daily`      |
 | `rainWeeklyIn`        | `piezoRain 0x11`        | `rainfall_piezo.weekly`     |
 | `rainMonthlyIn`       | `piezoRain 0x12`        | `rainfall_piezo.monthly`    |

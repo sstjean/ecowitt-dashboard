@@ -201,7 +201,7 @@ export const cloudRealtimeSchema = z.looseObject({
   rainfall_piezo: cloudGroup({
     rain_rate: cloudMetricSchema,
     event: cloudMetricSchema,
-    hourly: cloudMetricSchema,
+    "1_hour": cloudMetricSchema,
     daily: cloudMetricSchema,
     weekly: cloudMetricSchema,
     monthly: cloudMetricSchema,
