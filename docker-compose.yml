@@ -1,0 +1,79 @@
+# Self-hosted stack: poller (ingest) + api (serve) + web (nginx static + proxy)
+# + backup sidecar. Single SQLite file lives on a shared named volume; the poller
+# is the only writer, the api reads, the backup sidecar copies it off-host.
+# Images are pinned (no `latest`) and every service restarts unless stopped.
+#
+# Runtime config comes from a local .env (copy .env.example -> .env). No secrets
+# are committed (FR-055).
+
+services:
+  poller:
+    build:
+      context: .
+      dockerfile: apps/poller/Dockerfile
+    image: ecowitt/poller:1.0.0
+    restart: unless-stopped
+    environment:
+      GATEWAY_BASE_URL: ${GATEWAY_BASE_URL}
+      POLL_CADENCE_SECONDS: ${POLL_CADENCE_SECONDS:-30}
+      SQLITE_PATH: /data/ecowitt.sqlite
+      HOUSEHOLD_LAT: ${HOUSEHOLD_LAT}
+      HOUSEHOLD_LON: ${HOUSEHOLD_LON}
+    volumes:
+      - sqlite-data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: ecowitt/api:1.0.0
+    restart: unless-stopped
+    environment:
+      SQLITE_PATH: /data/ecowitt.sqlite
+      HOUSEHOLD_LAT: ${HOUSEHOLD_LAT}
+      HOUSEHOLD_LON: ${HOUSEHOLD_LON}
+      NWS_USER_AGENT: ${NWS_USER_AGENT}
+      RAIN_FULL_SCALE_IN: ${RAIN_FULL_SCALE_IN:-4.0}
+      BARO_TREND_WINDOW_HOURS: ${BARO_TREND_WINDOW_HOURS:-3}
+      BARO_STEADY_EPSILON_HPA: ${BARO_STEADY_EPSILON_HPA:-0.3}
+      NWS_CACHE_TTL_SECONDS: ${NWS_CACHE_TTL_SECONDS:-600}
+      NWS_STALE_AFTER_SECONDS: ${NWS_STALE_AFTER_SECONDS:-3600}
+      NWS_TIMEOUT_MS: ${NWS_TIMEOUT_MS:-5000}
+    volumes:
+      - sqlite-data:/data
+    depends_on:
+      - poller
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: ecowitt/web:1.0.0
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+
+  # Consistent off-host SQLite backup (research.md Decision 11 / finding C1).
+  # The data volume is mounted read-write because SQLite's online backup opens a
+  # WAL database, which requires write access to the wal-index (-shm); the script
+  # only ever reads the source logically and writes the copy to /backup.
+  backup:
+    image: alpine:3.21
+    restart: unless-stopped
+    environment:
+      SQLITE_PATH: /data/ecowitt.sqlite
+      BACKUP_DIR: /backup
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+    volumes:
+      - sqlite-data:/data
+      - ${BACKUP_HOST_DIR:-./backups}:/backup
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/backup-sqlite.sh"]
+    depends_on:
+      - poller
+
+volumes:
+  sqlite-data:

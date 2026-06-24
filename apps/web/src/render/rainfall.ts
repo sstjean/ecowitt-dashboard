@@ -1,0 +1,166 @@
+import { el, svgEl } from "./dom.ts";
+import { hexToRgb, rgbToCss } from "./tempScale.ts";
+
+/**
+ * Engineered full-scale cap for the droplet fill, in inches. Anchored to local
+ * extremes (2025 wettest day 3.65 in; Jun-20 calendar-day record 2.00 in) and
+ * agreed at 4 in. Beyond the cap the droplet stays full and its colour
+ * escalates to signal an extreme rain day.
+ */
+export const RAIN_FULL_SCALE_IN = 4.0;
+
+const DROP_PATH = "M50,8 C50,8 14,56 14,84 a36,36 0 0 0 72,0 C86,56 50,8 50,8 Z";
+const FILL_TOP = 8;
+const FILL_BOTTOM = 120;
+
+/** Daily-total fill fraction of the droplet, clamped to [0,1] against the cap. */
+export function dropFillFraction(dailyIn: number, fullScaleIn: number): number {
+  return Math.max(0, Math.min(1, dailyIn / fullScaleIn));
+}
+
+function lerpHex(from: string, to: string, f: number): string {
+  const a = hexToRgb(from);
+  const b = hexToRgb(to);
+  return rgbToCss([
+    Math.round(a[0] + (b[0] - a[0]) * f),
+    Math.round(a[1] + (b[1] - a[1]) * f),
+    Math.round(a[2] + (b[2] - a[2]) * f),
+  ]);
+}
+
+/** Droplet colour: base blue up to the cap, escalating blue → amber → red beyond it. */
+export function rainDropColor(dailyIn: number, fullScaleIn: number): string {
+  if (dailyIn <= fullScaleIn) {
+    return "#4da6ff";
+  }
+  const over = Math.min(1, (dailyIn - fullScaleIn) / fullScaleIn);
+  return over <= 0.5
+    ? lerpHex("#4da6ff", "#ff9800", over / 0.5)
+    : lerpHex("#ff9800", "#d32f2f", (over - 0.5) / 0.5);
+}
+
+export interface RainData {
+  rainDailyIn: number;
+  rainRateInHr: number;
+  rainEventIn: number;
+  rainHourlyIn: number;
+  rainWeeklyIn: number;
+  rainMonthlyIn: number;
+  rainYearlyIn: number;
+  isRaining: boolean;
+}
+
+function totalRow(
+  doc: Document,
+  label: string,
+  attr: string,
+  valueIn: number,
+): HTMLElement {
+  return el(
+    doc,
+    "div",
+    { class: "rr" },
+    el(doc, "span", {}, label),
+    el(doc, "span", { [attr]: "" }, `${valueIn.toFixed(2)} in`),
+  );
+}
+
+/**
+ * Render the rainfall panel: a droplet that fills proportionally to the daily
+ * total (full-scale {@link RAIN_FULL_SCALE_IN}, colour-escalating above the
+ * cap), the six running totals (Daily most prominent), the rain rate, and a
+ * "raining now" badge driven by the piezo flag.
+ */
+export function renderRainfall(container: HTMLElement, data: RainData): void {
+  const doc = container.ownerDocument;
+
+  const frac = dropFillFraction(data.rainDailyIn, RAIN_FULL_SCALE_IN);
+  const height = (FILL_BOTTOM - FILL_TOP) * frac;
+
+  const badge = el(
+    doc,
+    "span",
+    { class: "rain-now", "data-rain-now": "" },
+    el(doc, "span", { class: "dot" }),
+    "Raining now",
+  );
+  if (!data.isRaining) {
+    badge.setAttribute("hidden", "");
+  }
+
+  const heading = el(doc, "h3", { class: "inline" }, "Rainfall ", badge);
+
+  const droplet = el(
+    doc,
+    "div",
+    { class: "drop-wrap" },
+    svgEl(
+      doc,
+      "svg",
+      { class: "drop-svg", viewBox: "0 0 100 130" },
+      svgEl(
+        doc,
+        "clipPath",
+        { id: "dropClip" },
+        svgEl(doc, "path", { d: DROP_PATH }),
+      ),
+      svgEl(
+        doc,
+        "g",
+        { "clip-path": "url(#dropClip)" },
+        svgEl(doc, "rect", {
+          x: "0", y: "0", width: "100", height: "130",
+          fill: "var(--cp-surface-soft)",
+        }),
+        svgEl(doc, "rect", {
+          "data-drop-fill": "",
+          x: "0",
+          y: String(FILL_BOTTOM - height),
+          width: "100",
+          height: String(height),
+          fill: rainDropColor(data.rainDailyIn, RAIN_FULL_SCALE_IN),
+        }),
+      ),
+      svgEl(doc, "path", {
+        d: DROP_PATH, fill: "none",
+        stroke: "var(--cp-border-strong)", "stroke-width": "2",
+      }),
+    ),
+  );
+
+  const main = el(
+    doc,
+    "div",
+    { class: "rain-main" },
+    el(
+      doc,
+      "div",
+      { class: "rv" },
+      el(doc, "span", { "data-rain-daily": "" }, data.rainDailyIn.toFixed(2)),
+      el(doc, "span", { class: "u" }, " in"),
+    ),
+    el(doc, "div", { class: "rl" }, "Daily Rain"),
+    el(
+      doc,
+      "div",
+      { class: "rain-rate" },
+      el(doc, "span", { class: "rrv", "data-rain-rate": "" }, data.rainRateInHr.toFixed(2)),
+      " in/hr",
+    ),
+  );
+
+  const grid = el(
+    doc,
+    "div",
+    { class: "rain-grid" },
+    totalRow(doc, "Event", "data-rain-event", data.rainEventIn),
+    totalRow(doc, "Hourly", "data-rain-hourly", data.rainHourlyIn),
+    totalRow(doc, "Weekly", "data-rain-weekly", data.rainWeeklyIn),
+    totalRow(doc, "Monthly", "data-rain-monthly", data.rainMonthlyIn),
+    totalRow(doc, "Yearly", "data-rain-yearly", data.rainYearlyIn),
+  );
+
+  const body = el(doc, "div", { class: "rain-body" }, droplet, main, grid);
+
+  container.replaceChildren(heading, body);
+}

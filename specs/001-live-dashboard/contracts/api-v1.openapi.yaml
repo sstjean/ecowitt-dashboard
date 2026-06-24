@@ -1,0 +1,215 @@
+openapi: 3.1.0
+info:
+  title: Ecowitt Dashboard API
+  version: "1.0.0"
+  description: >
+    Versioned client-server contract for the Live Weather Dashboard MVP. The web
+    client consumes readings EXCLUSIVELY through this API (FR-036); it never reaches
+    the SQLite store or the gateway directly. All timestamps are UTC (ISO-8601);
+    display-time conversion to America/New_York happens in the client.
+servers:
+  - url: /api/v1
+    description: Versioned base path (served on the LAN over HTTP).
+paths:
+  /latest:
+    get:
+      operationId: getLatest
+      summary: Latest reading snapshot (or explicit no-data).
+      description: >
+        Returns the most recent stored reading enriched with astronomical data, a
+        3-hour barometric trend, and an NWS-sourced condition icon. On a fresh
+        install with an empty store, returns status "no-data" (HTTP 200) and never
+        fabricates zeros (FR-051/FR-052/FR-053).
+      responses:
+        "200":
+          description: Snapshot available, or an explicit no-data result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatestSnapshot"
+              examples:
+                ok:
+                  summary: Reading available
+                  value:
+                    status: ok
+                    observedAt: "2026-06-21T18:05:00Z"
+                    serverTime: "2026-06-21T18:05:07Z"
+                    reading:
+                      observedAt: "2026-06-21T18:05:00Z"
+                      outdoorTempF: 72.0
+                      feelsLikeF: 71.0
+                      dewpointF: 55.0
+                      outdoorHumidityPct: 48
+                      dayHighF: 81.0
+                      dayLowF: 58.0
+                      windMph: 8.0
+                      windDirDeg: 45
+                      gustMph: 14.0
+                      windAvg10mMph: 6.0
+                      windAvg10mDirDeg: 120
+                      maxDailyGustMph: 22.0
+                      maxDailyGustDir: "W"
+                      solarWm2: 540.0
+                      uvIndex: 5
+                      indoorTempF: 70.0
+                      indoorHumidityPct: 48
+                      rainEventIn: 0.00
+                      rainHourlyIn: 0.00
+                      rainDailyIn: 0.00
+                      rainWeeklyIn: 0.12
+                      rainMonthlyIn: 1.85
+                      rainYearlyIn: 22.40
+                      rainRateInHr: 0.00
+                      isRaining: false
+                      pressureHpa: 1013.0
+                    astro:
+                      sunriseUtc: "2026-06-21T09:25:00Z"
+                      sunsetUtc: "2026-06-22T00:31:00Z"
+                      sunAltitudeFraction: 0.58
+                      moonPhase: 0.21
+                    baroTrend:
+                      direction: rising
+                      deltaHpa: 1.4
+                    conditionIcon: clear
+                    conditionStale: false
+                noData:
+                  summary: Fresh install, empty store
+                  value:
+                    status: no-data
+                    observedAt: null
+                    serverTime: "2026-06-21T18:05:07Z"
+                    reading: null
+                    astro:
+                      sunriseUtc: "2026-06-21T09:25:00Z"
+                      sunsetUtc: "2026-06-22T00:31:00Z"
+                      sunAltitudeFraction: 0.58
+                      moonPhase: 0.21
+                    baroTrend:
+                      direction: unavailable
+                      deltaHpa: null
+                    # Sky condition is NWS-sourced (FR-033). Until the first
+                    # successful NWS fetch the icon is null and stale ⇒ the client
+                    # shows a greyed/neutral icon. Never fabricated from sensors.
+                    conditionIcon: null
+                    conditionStale: true
+  /health:
+    get:
+      operationId: getHealth
+      summary: Liveness/readiness probe.
+      responses:
+        "200":
+          description: Service healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+                storeReachable: true
+                serverTime: "2026-06-21T18:05:07Z"
+components:
+  schemas:
+    LatestSnapshot:
+      type: object
+      additionalProperties: false
+      required: [status, observedAt, reading, astro, baroTrend, conditionIcon, conditionStale, serverTime]
+      properties:
+        status:
+          type: string
+          enum: [ok, no-data]
+        observedAt:
+          type: [string, "null"]
+          format: date-time
+          description: UTC observation time of the latest reading; null when no-data.
+        reading:
+          oneOf:
+            - $ref: "#/components/schemas/LiveReadingSnapshot"
+            - type: "null"
+        astro:
+          $ref: "#/components/schemas/AstronomicalData"
+        baroTrend:
+          $ref: "#/components/schemas/BarometricTrend"
+        conditionIcon:
+          type: [string, "null"]
+          enum: [clear, partly-cloudy, cloudy, fog, rainy, snow, thunderstorm, night, null]
+          description: NWS-sourced current sky condition mapped to the icon vocabulary; null until the first successful NWS fetch (FR-033).
+        conditionStale:
+          type: boolean
+          description: true when NWS is unavailable or its last good fetch is older than NWS_STALE_AFTER_SECONDS; the client greys the icon (FR-033).
+        serverTime:
+          type: string
+          format: date-time
+    LiveReadingSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        [observedAt, outdoorTempF, feelsLikeF, dewpointF, outdoorHumidityPct,
+         dayHighF, dayLowF, windMph, windDirDeg, gustMph, windAvg10mMph,
+         windAvg10mDirDeg, maxDailyGustMph, maxDailyGustDir, solarWm2, uvIndex,
+         indoorTempF, indoorHumidityPct, rainEventIn, rainHourlyIn, rainDailyIn,
+         rainWeeklyIn, rainMonthlyIn, rainYearlyIn, rainRateInHr, isRaining,
+         pressureHpa]
+      properties:
+        observedAt: { type: string, format: date-time }
+        outdoorTempF: { type: number }
+        feelsLikeF: { type: number }
+        dewpointF: { type: number }
+        outdoorHumidityPct: { type: number, minimum: 0, maximum: 100 }
+        dayHighF: { type: number }
+        dayLowF: { type: number }
+        windMph: { type: number, minimum: 0 }
+        windDirDeg: { type: number, minimum: 0, maximum: 360 }
+        gustMph: { type: number, minimum: 0 }
+        windAvg10mMph: { type: number, minimum: 0 }
+        windAvg10mDirDeg: { type: number, minimum: 0, maximum: 360 }
+        maxDailyGustMph: { type: number, minimum: 0 }
+        maxDailyGustDir: { type: string }
+        solarWm2: { type: number, minimum: 0 }
+        uvIndex: { type: number, minimum: 0 }
+        indoorTempF: { type: number }
+        indoorHumidityPct: { type: number, minimum: 0, maximum: 100 }
+        rainEventIn: { type: number, minimum: 0 }
+        rainHourlyIn: { type: number, minimum: 0 }
+        rainDailyIn: { type: number, minimum: 0 }
+        rainWeeklyIn: { type: number, minimum: 0 }
+        rainMonthlyIn: { type: number, minimum: 0 }
+        rainYearlyIn: { type: number, minimum: 0 }
+        rainRateInHr: { type: number, minimum: 0 }
+        isRaining: { type: boolean }
+        pressureHpa: { type: number, minimum: 0 }
+    AstronomicalData:
+      type: object
+      additionalProperties: false
+      required: [sunriseUtc, sunsetUtc, sunAltitudeFraction, moonPhase]
+      properties:
+        sunriseUtc: { type: string, format: date-time }
+        sunsetUtc: { type: string, format: date-time }
+        sunAltitudeFraction:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Sun position along the day arc (0 sunrise .. 1 sunset), bounded.
+        moonPhase:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: 0=new, 0.5=full (continuous phase).
+    BarometricTrend:
+      type: object
+      additionalProperties: false
+      required: [direction, deltaHpa]
+      properties:
+        direction:
+          type: string
+          enum: [rising, steady, falling, unavailable]
+        deltaHpa:
+          type: [number, "null"]
+          description: Change over the 3h window; null when unavailable (<3h history).
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, storeReachable, serverTime]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        storeReachable: { type: boolean }
+        serverTime: { type: string, format: date-time }
