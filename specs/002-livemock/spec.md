@@ -210,8 +210,9 @@ the UI shows em-dashes rather than fabricated zeros.
   absent/invalid credentials, startup configuration validation must fail loudly
   (consistent with the existing config-validation behaviour).
 - **No-data window**: the cloud endpoint returns data only within the past ~2
-  hours; an empty/`code:0`-but-no-data response degrades like any other stale
-  source.
+  hours; an empty/`code:0`-but-no-data (or schema-invalid `data`) response is
+  caught at the poller wiring and degrades like any other recoverable failure
+  (FR-022), never crashing the poller.
 
 ## Requirements *(mandatory)*
 
@@ -230,12 +231,13 @@ the UI shows em-dashes rather than fabricated zeros.
   contract `{ ok: true, data } | { ok: false, error }` and MUST never throw on a
   failed fetch (using an `AbortController` timeout, like the gateway client).
 - **FR-004**: The cloud request MUST include `application_key`, `api_key`, the
-  device identifier (`mac`, or `imei`), `call_back`, and unit-id parameters that
+  device identifier (`mac`), `call_back`, and unit-id parameters that
   default to the app's display units: `temp_unitid=2` (℉), `wind_speed_unitid=9`
   (mph), `rainfall_unitid=13` (in), `pressure_unitid=4` (inHg),
   `solar_irradiance_unitid=16` (W/m²).
 - **FR-005**: Pressure MUST be requested in **inHg** (`pressure_unitid=4`) because
-  the existing mapper always interprets `wh25.abs`/`wh25.rel` as inHg.
+  the existing mapper always interprets `wh25.abs`/`wh25.rel` as inHg (the adapter
+  then emits inHg per FR-013).
 - **FR-006**: Production behaviour MUST be unchanged: enabling LiveMock requires
   the explicit `POLLER_SOURCE=cloud` opt-in and MUST NOT alter the production LAN
   gateway path.
@@ -261,9 +263,10 @@ the UI shows em-dashes rather than fabricated zeros.
   endpoint does not provide (Decision A): `maxDailyGustMph` ← current
   `wind.wind_gust`; `windAvg10mDirDeg` ← current `wind.wind_direction`. The
   existing strict schema MUST NOT be relaxed.
-- **FR-013**: The adapter MUST emit pressure values in inHg and pass temperature,
-  wind, and rain values through in display units, so the existing unit-conversion
-  logic (`inHgToHpa`, `toF`/`toMph`/`toIn`) behaves correctly without change.
+- **FR-013**: The adapter MUST emit pressure values in inHg (the request side is
+  FR-005) and pass temperature, wind, and rain values through in display units, so
+  the existing unit-conversion logic (`inHgToHpa`, `toF`/`toMph`/`toIn`) behaves
+  correctly without change.
 - **FR-014**: Adapter output MUST pass `normalizeToFullMetricMap` and
   `projectLiveReading` with no schema errors.
 
@@ -293,9 +296,11 @@ the UI shows em-dashes rather than fabricated zeros.
 - **FR-021**: A cloud response with a non-zero `code` (success is `code:0`) MUST
   be surfaced as a typed `{ ok: false, error }` failure carrying the API message
   — never thrown.
-- **FR-022**: Timeouts, network errors, and rate-limit responses MUST be treated
-  as recoverable failures that log and skip the cycle (reusing the existing
-  `onError` path in the poll cycle) without crashing the poller.
+- **FR-022**: Timeouts, network errors, rate-limit responses, and a `code:0`
+  response whose `data` is empty or fails the cloud zod schema (a partial or
+  malformed payload, surfaced as an adapter validation error) MUST be treated as
+  recoverable failures that log and skip the cycle (reusing the existing `onError`
+  path in the poll cycle) without crashing the poller.
 - **FR-023**: On sustained cloud failure, the store MUST go stale and the UI MUST
   degrade to em-dashes via the existing freshness logic — never fabricated zeros
   (the same honest degradation as gateway hiccups, Feature 001 US9).
@@ -317,8 +322,8 @@ the UI shows em-dashes rather than fabricated zeros.
   with `common_list[]` hex-id items (`{ id, val, unit? }`), a `wh25` group
   (indoor T/RH + barometric pressure in inHg), and a `piezoRain` group — the exact
   shape the existing mapper consumes.
-- **Cloud source credentials**: `application_key`, `api_key`, and the device MAC
-  (or IMEI); held only in a gitignored `.env`.
+- **Cloud source credentials**: `application_key`, `api_key`, and the device MAC;
+  held only in a gitignored `.env`.
 - **Typed fetch result**: `{ ok: true, data } | { ok: false, error }` — the shared
   contract between the cloud fetcher and the poll cycle.
 
@@ -327,8 +332,8 @@ the UI shows em-dashes rather than fabricated zeros.
 ### Measurable Outcomes
 
 - **SC-001**: With valid credentials and `POLLER_SOURCE=cloud`, an operator
-  off-LAN sees real, current household readings on the dashboard within two poll
-  cadences of starting the LiveMock stack.
+  off-LAN sees real, current household readings on the dashboard within ~2 device
+  cloud-upload intervals (≤ ~2 minutes) of starting the LiveMock stack.
 - **SC-002**: With `POLLER_SOURCE` unset or `gateway`, the application behaves
   identically to before this feature (no observable production change, zero cloud
   calls).

@@ -28,7 +28,7 @@ consumes it unchanged. The raw cloud payload is never persisted verbatim.
 |-------|--------|-------|-------|
 | `application_key` | `ECOWITT_APP_KEY` | secret | required |
 | `api_key` | `ECOWITT_API_KEY` | secret | required |
-| `mac` | `ECOWITT_MAC` | device MAC | required (or `imei`) |
+| `mac` | `ECOWITT_MAC` | device MAC | required |
 | `call_back` | constant | `outdoor,indoor,solar_and_uvi,rainfall_piezo,wind,pressure` | trimmed CSV (D9); `all` also acceptable |
 | `temp_unitid` | constant | `2` | ℉ (FR-004) |
 | `wind_speed_unitid` | constant | `9` | mph |

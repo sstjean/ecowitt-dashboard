@@ -39,7 +39,8 @@ LAN gateway. No mock-gateway service is started (unlike `docker-compose.mock.yml
 
 ## 3. Verify live values on the dashboard (US3 / SC-001)
 
-Open the web UI (default `http://localhost:8080`). Within **two poll cadences** you should
+Open the web UI (default `http://localhost:8080`). Within **~2 device cloud-upload intervals**
+(≤ ~2 minutes) you should
 see:
 
 - Real, current household readings — **not em-dashes**, not stale.

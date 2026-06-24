@@ -146,6 +146,7 @@ packages/shared/
 # Repo root
 docker-compose.livemock.yml  # NEW — POLLER_SOURCE=cloud override (no mock-gateway)
 .env.example                 # MODIFIED — POLLER_SOURCE + ECOWITT_* placeholders
+.gitignore                   # MODIFIED — ensure .env is ignored (T001)
 ```
 
 **Structure Decision**: Existing monorepo layout is reused. The cloud **fetcher**
@@ -157,8 +158,8 @@ the fetch boundary. No new package or app is introduced.
 ## Phase 0 — Research
 
 See [research.md](./research.md). All decisions are locked by Issue #11 / the spec's
-Locked Decisions; research records rationale and the one resolved gap (rain
-weekly/monthly/yearly mapping, D7) plus the open question surfaced to the operator.
+Locked Decisions; research records rationale and the resolved rain weekly/monthly/yearly
+mapping (D7, LOCKED — verified against a live capture at quickstart T014).
 
 ## Phase 1 — Design & Contracts
 

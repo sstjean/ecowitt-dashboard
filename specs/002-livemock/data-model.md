@@ -49,8 +49,8 @@ The Ecowitt cloud envelope from `GET /api/v3/device/real_time`:
   ever called.
 
 > The exact nesting of `data` (e.g. whether `rainfall_piezo` carries weekly/monthly/yearly)
-> is confirmed against a captured live payload during quickstart — see research **D7**
-> (open question).
+> is **LOCKED** to the `rainfall_piezo` group per research **D7**; it is verified against a
+> captured live payload during quickstart (T014).
 
 ---
 
@@ -84,9 +84,9 @@ Shape per `gatewayResponseSchema`: `{ common_list[], wh25[1], piezoRain[≥1], r
     { "id": "0x0E", "val": "<rainfall_piezo.rain_rate>","unit": "in/hr" },
     { "id": "0x7C", "val": "<rainfall_piezo.hourly>",   "unit": "in" },
     { "id": "0x10", "val": "<rainfall_piezo.daily>",    "unit": "in" },
-    { "id": "0x11", "val": "<rainfall_piezo.weekly>",   "unit": "in" },  // D7 — confirm source
-    { "id": "0x12", "val": "<rainfall_piezo.monthly>",  "unit": "in" },  // D7 — confirm source
-    { "id": "0x13", "val": "<rainfall_piezo.yearly>",   "unit": "in" }   // D7 — confirm source
+    { "id": "0x11", "val": "<rainfall_piezo.weekly>",   "unit": "in" },  // D7 — LOCKED (verify at quickstart)
+    { "id": "0x12", "val": "<rainfall_piezo.monthly>",  "unit": "in" },  // D7 — LOCKED (verify at quickstart)
+    { "id": "0x13", "val": "<rainfall_piezo.yearly>",   "unit": "in" }   // D7 — LOCKED (verify at quickstart)
   ]
 }
 ```
@@ -130,9 +130,9 @@ strict schema requires (see research D4/D5/D7):
 | `rainRateInHr` | `piezoRain 0x0E` | `rainfall_piezo.rain_rate` | |
 | `rainHourlyIn` | `piezoRain 0x7C` | `rainfall_piezo.hourly` | |
 | `rainDailyIn` | `piezoRain 0x10` | `rainfall_piezo.daily` | |
-| `rainWeeklyIn` | `piezoRain 0x11` | `rainfall_piezo.weekly` | D7 — confirm source |
-| `rainMonthlyIn` | `piezoRain 0x12` | `rainfall_piezo.monthly` | D7 — confirm source |
-| `rainYearlyIn` | `piezoRain 0x13` | `rainfall_piezo.yearly` | D7 — confirm source |
+| `rainWeeklyIn` | `piezoRain 0x11` | `rainfall_piezo.weekly` | D7 — LOCKED (verify at quickstart) |
+| `rainMonthlyIn` | `piezoRain 0x12` | `rainfall_piezo.monthly` | D7 — LOCKED (verify at quickstart) |
+| `rainYearlyIn` | `piezoRain 0x13` | `rainfall_piezo.yearly` | D7 — LOCKED (verify at quickstart) |
 | `isRaining` | `piezoRain srain_piezo` | **`rainfall_piezo.rain_rate > 0`** | **SYNTHESIZED** flag (D5) |
 
 The tipping-bucket group (`data.rainfall.*`) is **ignored** (FR-010, D6).
