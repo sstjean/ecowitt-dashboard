@@ -1,0 +1,15 @@
+# LiveMock override: real-data dev source via the Ecowitt **cloud** API instead
+# of the LAN gateway. The poller runs off-LAN — no mock gateway, no device on
+# the network. Credentials come from a gitignored .env (copy .env.example).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.livemock.yml up
+#
+# Production stays on the gateway path; this override is dev/test only.
+services:
+  poller:
+    environment:
+      POLLER_SOURCE: cloud
+      ECOWITT_APP_KEY: ${ECOWITT_APP_KEY}
+      ECOWITT_API_KEY: ${ECOWITT_API_KEY}
+      ECOWITT_MAC: ${ECOWITT_MAC}
+      ECOWITT_API_BASE_URL: ${ECOWITT_API_BASE_URL:-https://api.ecowitt.net}

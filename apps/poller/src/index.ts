@@ -1,30 +1,45 @@
 import { loadPollerConfig } from "./config.ts";
 import { openWriteStore } from "./store.ts";
-import { runPollCycle } from "./poll.ts";
+import { runPollCycle, runCloudPollCycle } from "./poll.ts";
 import { startScheduler } from "./scheduler.ts";
 import { DEFAULT_GATEWAY_TIMEOUT_MS } from "./gatewayClient.ts";
 
 const config = loadPollerConfig(process.env);
 const store = openWriteStore(config.sqlitePath);
 
-const stop = startScheduler(
-  config.pollCadenceSeconds,
-  () => {
-    void runPollCycle({
-      baseUrl: config.gatewayBaseUrl,
-      timeoutMs: DEFAULT_GATEWAY_TIMEOUT_MS,
-      fetchImpl: fetch,
-      store,
-      now: () => new Date(),
-      onError: (error) => {
-        console.error(`[poller] cycle failed: ${error}`);
-      },
-    });
-  },
-  (error) => {
-    console.error(`[poller] scheduler tick threw: ${String(error)}`);
-  },
-);
+const onError = (error: string): void => {
+  console.error(`[poller] cycle failed: ${error}`);
+};
+
+const tick =
+  config.source === "cloud"
+    ? (): void => {
+        void runCloudPollCycle({
+          baseUrl: config.ecowittApiBaseUrl!,
+          appKey: config.ecowittAppKey!,
+          apiKey: config.ecowittApiKey!,
+          mac: config.ecowittMac!,
+          timeoutMs: DEFAULT_GATEWAY_TIMEOUT_MS,
+          fetchImpl: fetch,
+          store,
+          now: () => new Date(),
+          onError,
+        });
+      }
+    : (): void => {
+        void runPollCycle({
+          baseUrl: config.gatewayBaseUrl!,
+          timeoutMs: DEFAULT_GATEWAY_TIMEOUT_MS,
+          fetchImpl: fetch,
+          store,
+          now: () => new Date(),
+          onError,
+        });
+      };
+
+const stop = startScheduler(config.pollCadenceSeconds, tick, (error) => {
+  console.error(`[poller] scheduler tick threw: ${String(error)}`);
+});
 
 function shutdown(): void {
   stop();
