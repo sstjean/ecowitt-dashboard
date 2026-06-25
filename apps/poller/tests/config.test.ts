@@ -155,4 +155,14 @@ describe("loadPollerConfig — source switch (LiveMock)", () => {
       loadPollerConfig({ ...cloudEnv(), ECOWITT_API_BASE_URL: "not a url" }),
     ).toThrow();
   });
+
+  it("treats an empty ECOWITT_API_BASE_URL as absent so the default applies", () => {
+    expect(
+      loadPollerConfig({ ...cloudEnv(), ECOWITT_API_BASE_URL: "" }).ecowittApiBaseUrl,
+    ).toBe("https://api.ecowitt.net");
+  });
+
+  it("does not let an empty ECOWITT_API_BASE_URL break gateway mode", () => {
+    expect(() => loadPollerConfig({ ...baseEnv(), ECOWITT_API_BASE_URL: "" })).not.toThrow();
+  });
 });

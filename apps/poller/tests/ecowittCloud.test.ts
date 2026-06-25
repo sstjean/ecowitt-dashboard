@@ -52,6 +52,19 @@ describe("fetchCloudRealtime — happy path & request shape", () => {
     expect(q.get("solar_irradiance_unitid")).toBe("16");
   });
 
+  it("builds a clean path when the base URL carries a trailing slash", async () => {
+    let calledUrl = "";
+    const fetchImpl = ((url: string): Promise<Response> => {
+      calledUrl = url;
+      return Promise.resolve(jsonResponse({ code: 0, msg: "success", data: {} }));
+    }) as unknown as typeof fetch;
+
+    await fetchCloudRealtime({ ...creds, baseUrl: "https://api.ecowitt.net/", fetchImpl });
+
+    const u = new URL(calledUrl);
+    expect(u.origin + u.pathname).toBe("https://api.ecowitt.net/api/v3/device/real_time");
+  });
+
   it("falls back to the default timeout when none is given", async () => {
     const data = { ok: true };
     const fetchImpl = ((_url: string, init?: { signal?: AbortSignal }): Promise<Response> => {

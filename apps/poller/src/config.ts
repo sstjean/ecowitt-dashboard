@@ -29,7 +29,10 @@ const pollerEnvSchema = z
     ECOWITT_APP_KEY: z.string().optional(),
     ECOWITT_API_KEY: z.string().optional(),
     ECOWITT_MAC: z.string().optional(),
-    ECOWITT_API_BASE_URL: z.url().default("https://api.ecowitt.net"),
+    ECOWITT_API_BASE_URL: z.preprocess(
+      emptyToUndefined,
+      z.url().default("https://api.ecowitt.net"),
+    ),
   })
   .superRefine((e, ctx) => {
     if (e.POLLER_SOURCE === "gateway" && !e.GATEWAY_BASE_URL) {

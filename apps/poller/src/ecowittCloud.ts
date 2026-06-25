@@ -26,7 +26,7 @@ const UNIT_PARAMS: Record<string, string> = {
 };
 
 function buildUrl(opts: CloudFetchOptions): string {
-  const url = new URL(`${opts.baseUrl}/api/v3/device/real_time`);
+  const url = new URL("/api/v3/device/real_time", opts.baseUrl);
   url.searchParams.set("application_key", opts.appKey);
   url.searchParams.set("api_key", opts.apiKey);
   url.searchParams.set("mac", opts.mac);

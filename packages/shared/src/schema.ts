@@ -115,11 +115,11 @@ export const barometricTrendSchema = z.strictObject({
   direction: z.enum(["rising", "steady", "falling", "unavailable"]),
   deltaHpa: z.union([z.number(), z.null()]),
   /**
-   * Minutes until enough history exists to compute the trend. A positive number
+   * Minutes until enough history exists to compute the trend. A positive integer
    * while history is still accumulating, `null` once the trend is available (or
    * when there is no data at all to estimate from).
    */
-  etaMinutes: z.union([z.number(), z.null()]),
+  etaMinutes: z.union([z.number().int().nonnegative(), z.null()]),
 });
 export type BarometricTrend = z.infer<typeof barometricTrendSchema>;
 

@@ -205,6 +205,15 @@ describe("barometricTrendSchema", () => {
       barometricTrendSchema.parse({ direction: "sideways", deltaHpa: 0, etaMinutes: null }),
     ).toThrow();
   });
+
+  it("rejects a negative or fractional etaMinutes", () => {
+    expect(() =>
+      barometricTrendSchema.parse({ direction: "unavailable", deltaHpa: null, etaMinutes: -3 }),
+    ).toThrow();
+    expect(() =>
+      barometricTrendSchema.parse({ direction: "unavailable", deltaHpa: null, etaMinutes: 1.5 }),
+    ).toThrow();
+  });
 });
 
 describe("healthSchema", () => {
