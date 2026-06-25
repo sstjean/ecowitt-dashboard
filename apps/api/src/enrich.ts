@@ -95,29 +95,44 @@ export function deriveDaily(
 
 /**
  * Derive the barometric trend over the configured window (data-model.md §7).
- * Honest by construction: with fewer than `windowHours` of stored history the
- * trend is `unavailable` with a `null` delta rather than a fabricated steady/zero.
- * The dead-band makes the rising/steady/falling boundary deterministic:
- * `steady` when `|delta| <= epsilon`, `rising`/`falling` otherwise.
+ * Honest by construction: until history reaches back a full `windowHours` the
+ * trend is `unavailable` with a `null` delta and an `etaMinutes` countdown
+ * (minutes until the oldest reading ages into the window) rather than a
+ * fabricated steady/zero. The caller fetches a window wider than `windowHours`
+ * so a reading at/just-beyond the `now - windowHours` boundary exists; the
+ * anchor is the reading closest to that boundary. The dead-band makes the
+ * rising/steady/falling boundary deterministic: `steady` when
+ * `|delta| <= epsilon`, `rising`/`falling` otherwise.
  */
 export function deriveBaroTrend(
   window: StoredReading[],
   windowHours: number,
   epsilonHpa: number,
+  now: Date,
 ): BarometricTrend {
-  if (window.length < 2) {
-    return { direction: "unavailable", deltaHpa: null };
+  const windowMs = windowHours * 60 * 60 * 1000;
+  if (window.length === 0) {
+    return { direction: "unavailable", deltaHpa: null, etaMinutes: null };
   }
   const oldest = window[0]!;
-  const newest = window[window.length - 1]!;
-  const spanMs = Date.parse(newest.observedAt) - Date.parse(oldest.observedAt);
-  if (spanMs < windowHours * 60 * 60 * 1000) {
-    return { direction: "unavailable", deltaHpa: null };
+  const oldestAgeMs = now.getTime() - Date.parse(oldest.observedAt);
+  if (window.length < 2 || oldestAgeMs < windowMs) {
+    const remainingMs = windowMs - oldestAgeMs;
+    const etaMinutes = remainingMs > 0 ? Math.ceil(remainingMs / 60000) : null;
+    return { direction: "unavailable", deltaHpa: null, etaMinutes };
   }
-  const deltaHpa = num(newest.metrics.pressureHpa) - num(oldest.metrics.pressureHpa);
+  const newest = window[window.length - 1]!;
+  const targetMs = now.getTime() - windowMs;
+  const anchor = window.reduce((best, reading) =>
+    Math.abs(Date.parse(reading.observedAt) - targetMs) <
+    Math.abs(Date.parse(best.observedAt) - targetMs)
+      ? reading
+      : best,
+  );
+  const deltaHpa = num(newest.metrics.pressureHpa) - num(anchor.metrics.pressureHpa);
   const direction =
     Math.abs(deltaHpa) <= epsilonHpa ? "steady" : deltaHpa > 0 ? "rising" : "falling";
-  return { direction, deltaHpa };
+  return { direction, deltaHpa, etaMinutes: null };
 }
 
 /**

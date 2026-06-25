@@ -115,6 +115,7 @@ describe("poller resilience through gateway hiccups", () => {
     const held = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:05Z"), {
       conditionIcon: null,
       conditionStale: true,
+      conditionText: null,
     });
     expect(held.status).toBe("ok");
     expect(held.reading?.outdoorTempF).toBe(72.4);
@@ -134,6 +135,7 @@ describe("poller resilience through gateway hiccups", () => {
     const back = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:35Z"), {
       conditionIcon: null,
       conditionStale: true,
+      conditionText: null,
     });
     expect(back.reading?.outdoorTempF).toBe(80);
     expect(deriveFreshness(back.observedAt, Date.parse("2026-06-21T15:31:35Z"), CADENCE_SECONDS)).toBe(

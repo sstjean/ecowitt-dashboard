@@ -114,6 +114,12 @@ export type AstronomicalData = z.infer<typeof astronomicalDataSchema>;
 export const barometricTrendSchema = z.strictObject({
   direction: z.enum(["rising", "steady", "falling", "unavailable"]),
   deltaHpa: z.union([z.number(), z.null()]),
+  /**
+   * Minutes until enough history exists to compute the trend. A positive number
+   * while history is still accumulating, `null` once the trend is available (or
+   * when there is no data at all to estimate from).
+   */
+  etaMinutes: z.union([z.number(), z.null()]),
 });
 export type BarometricTrend = z.infer<typeof barometricTrendSchema>;
 
@@ -139,6 +145,8 @@ export const latestSnapshotSchema = z.strictObject({
   baroTrend: barometricTrendSchema,
   conditionIcon: z.union([conditionIconSchema, z.null()]),
   conditionStale: z.boolean(),
+  /** The verbatim NWS sky-condition label (e.g. "Partly Sunny"); null until first fetch. */
+  conditionText: z.union([z.string(), z.null()]),
   serverTime: isoUtc(),
 });
 export type LatestSnapshot = z.infer<typeof latestSnapshotSchema>;

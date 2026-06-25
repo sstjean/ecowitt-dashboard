@@ -63,9 +63,10 @@ function snap(r: LiveReadingSnapshot): LatestSnapshot {
       sunAltitudeFraction: 0.58,
       moonPhase: 0.21,
     },
-    baroTrend: { direction: "steady", deltaHpa: 0 },
+    baroTrend: { direction: "steady", deltaHpa: 0, etaMinutes: null },
     conditionIcon: "clear",
     conditionStale: false,
+    conditionText: "Sunny",
   };
 }
 

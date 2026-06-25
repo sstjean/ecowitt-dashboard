@@ -65,9 +65,10 @@ function snap(serverTime: string): LatestSnapshot {
     serverTime,
     reading: r,
     astro,
-    baroTrend: { direction: "steady", deltaHpa: 0 },
+    baroTrend: { direction: "steady", deltaHpa: 0, etaMinutes: null },
     conditionIcon: "clear",
     conditionStale: false,
+    conditionText: "Sunny",
   };
 }
 

@@ -112,6 +112,7 @@ describe("cloud poll → adapter → store → API pipeline", () => {
     const snap = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:00Z"), {
       conditionIcon: null,
       conditionStale: true,
+      conditionText: null,
     });
     expect(snap.status).toBe("ok");
     expect(snap.reading?.outdoorTempF).toBe(72.4);

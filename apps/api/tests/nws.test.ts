@@ -19,6 +19,7 @@ describe("createNwsClient", () => {
     expect(client.current(at("2026-06-21T12:00:00Z"))).toEqual({
       conditionIcon: null,
       conditionStale: true,
+      conditionText: null,
     });
   });
 
@@ -35,6 +36,7 @@ describe("createNwsClient", () => {
     expect(client.current(at("2026-06-21T12:00:01Z"))).toEqual({
       conditionIcon: "cloudy",
       conditionStale: false,
+      conditionText: "Cloudy",
     });
     expect(calls).toBe(1);
 
@@ -81,6 +83,10 @@ describe("createNwsClient", () => {
 
     const t0 = at("2026-06-21T12:00:00Z");
     await expect(client.refresh(t0)).resolves.toBeUndefined();
-    expect(client.current(t0)).toEqual({ conditionIcon: null, conditionStale: true });
+    expect(client.current(t0)).toEqual({
+      conditionIcon: null,
+      conditionStale: true,
+      conditionText: null,
+    });
   });
 });

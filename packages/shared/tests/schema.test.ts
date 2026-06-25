@@ -146,9 +146,10 @@ describe("latestSnapshotSchema", () => {
         sunAltitudeFraction: 0.58,
         moonPhase: 0.21,
       },
-      baroTrend: { direction: "rising", deltaHpa: 1.4 },
+      baroTrend: { direction: "rising", deltaHpa: 1.4, etaMinutes: null },
       conditionIcon: "clear",
       conditionStale: false,
+      conditionText: "Sunny",
     };
     expect(latestSnapshotSchema.parse(env)).toEqual(env);
   });
@@ -165,9 +166,10 @@ describe("latestSnapshotSchema", () => {
         sunAltitudeFraction: 0.58,
         moonPhase: 0.21,
       },
-      baroTrend: { direction: "unavailable", deltaHpa: null },
+      baroTrend: { direction: "unavailable", deltaHpa: null, etaMinutes: null },
       conditionIcon: null,
       conditionStale: true,
+      conditionText: null,
     };
     expect(latestSnapshotSchema.parse(env)).toEqual(env);
   });
@@ -194,13 +196,13 @@ describe("astronomicalDataSchema", () => {
 describe("barometricTrendSchema", () => {
   it("allows a null delta for unavailable", () => {
     expect(
-      barometricTrendSchema.parse({ direction: "unavailable", deltaHpa: null }),
-    ).toEqual({ direction: "unavailable", deltaHpa: null });
+      barometricTrendSchema.parse({ direction: "unavailable", deltaHpa: null, etaMinutes: 90 }),
+    ).toEqual({ direction: "unavailable", deltaHpa: null, etaMinutes: 90 });
   });
 
   it("rejects an unknown direction", () => {
     expect(() =>
-      barometricTrendSchema.parse({ direction: "sideways", deltaHpa: 0 }),
+      barometricTrendSchema.parse({ direction: "sideways", deltaHpa: 0, etaMinutes: null }),
     ).toThrow();
   });
 });

@@ -52,6 +52,7 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
       baroTrend: snapshot.baroTrend,
       conditionIcon: snapshot.conditionIcon,
       conditionStale: snapshot.conditionStale,
+      conditionText: snapshot.conditionText,
     });
 
     // The renderers above replace each panel's children (clearing any prior

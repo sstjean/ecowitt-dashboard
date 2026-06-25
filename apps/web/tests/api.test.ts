@@ -44,9 +44,10 @@ function okEnvelope(): LatestSnapshot {
       pressureHpa: 1013,
     },
     astro,
-    baroTrend: { direction: "rising", deltaHpa: 1.4 },
+    baroTrend: { direction: "rising", deltaHpa: 1.4, etaMinutes: null },
     conditionIcon: "clear",
     conditionStale: false,
+    conditionText: "Sunny",
   };
 }
 
@@ -57,9 +58,10 @@ function noDataEnvelope(): LatestSnapshot {
     serverTime: "2026-06-21T18:05:07Z",
     reading: null,
     astro,
-    baroTrend: { direction: "unavailable", deltaHpa: null },
+    baroTrend: { direction: "unavailable", deltaHpa: null, etaMinutes: null },
     conditionIcon: null,
     conditionStale: true,
+    conditionText: null,
   };
 }
 
