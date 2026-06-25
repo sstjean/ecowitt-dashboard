@@ -6,6 +6,8 @@ const CENTER_X = 200;
 const ARC_RADIUS_X = 180;
 const BASELINE_Y = 100;
 const DOME_HEIGHT = 86;
+/** Minutes the sun lingers (dimmed) on the arc on either side of the day. */
+const SHOULDER_MIN = 5;
 
 export interface SolarSkyData {
   solarWm2: number;
@@ -85,10 +87,11 @@ function readout(
 /**
  * Render the Solar & Sky panel: a day-arc dome with a sun marker that walks
  * along the arc by day-progress — left at sunrise, apex at solar noon, right at
- * sunset — resting dim on the baseline overnight (FR matches the prototype),
- * the solar W/m² and UV readouts, the Eastern sunrise/sunset times, and the
- * named moon phase. `now` defaults to the live wall-clock so the sun advances
- * with each refresh.
+ * sunset. The sun is yellow between sunrise and sunset and lingers dim grey on
+ * the arc ends for five minutes before sunrise / after sunset, then is removed
+ * entirely overnight. Plus the solar W/m² and UV readouts, the Eastern
+ * sunrise/sunset times, and the named moon phase. `now` defaults to the live
+ * wall-clock so the sun advances with each refresh.
  */
 export function renderSolarSky(
   container: HTMLElement,
@@ -105,7 +108,11 @@ export function renderSolarSky(
   const theta = Math.PI * (1 - frac);
   const cx = CENTER_X + ARC_RADIUS_X * Math.cos(theta);
   const cy = BASELINE_Y - DOME_HEIGHT * Math.sin(theta);
-  const isDay = nowMin >= sunriseMin && nowMin <= sunsetMin;
+  // Yellow strictly between sunrise and sunset; dim grey on the 5-minute
+  // shoulders before sunrise / after sunset; absent the rest of the night.
+  const isDay = nowMin >= sunriseMin && nowMin < sunsetMin;
+  const showSun =
+    nowMin >= sunriseMin - SHOULDER_MIN && nowMin <= sunsetMin + SHOULDER_MIN;
 
   const arc = svgEl(
     doc,
@@ -119,14 +126,18 @@ export function renderSolarSky(
       x1: "20", y1: "100", x2: "380", y2: "100",
       stroke: "var(--cp-border)", "stroke-width": "1",
     }),
-    svgEl(doc, "circle", {
-      "data-sun-marker": "",
-      cx: cx.toFixed(1),
-      cy: cy.toFixed(1),
-      r: "9",
-      fill: isDay ? "#ffd54a" : "var(--cp-text-muted)",
-      opacity: isDay ? "1" : "0.35",
-    }),
+    ...(showSun
+      ? [
+          svgEl(doc, "circle", {
+            "data-sun-marker": "",
+            cx: cx.toFixed(1),
+            cy: cy.toFixed(1),
+            r: "9",
+            fill: isDay ? "#ffd54a" : "var(--cp-text-muted)",
+            opacity: isDay ? "1" : "0.35",
+          }),
+        ]
+      : []),
   );
 
   const moon = el(
