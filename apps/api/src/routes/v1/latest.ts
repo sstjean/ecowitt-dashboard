@@ -8,14 +8,14 @@ import {
 import type { ReadStore } from "../../store.ts";
 import type { ApiConfig } from "../../config.ts";
 import { deriveDaily, deriveBaroTrend, computeAstro, localDayStartIso } from "../../enrich.ts";
-import type { ConditionState, NwsClient } from "../../nws.ts";
+import { resolveConditionIcon, type ConditionState, type NwsClient } from "../../nws.ts";
 
 const TIME_ZONE = "America/New_York";
 
 const UNAVAILABLE_CONDITION: ConditionState = {
-  conditionIcon: null,
-  conditionStale: true,
   conditionText: null,
+  conditionStale: true,
+  hasObservation: false,
 };
 
 /**
@@ -32,6 +32,23 @@ export function buildLatestSnapshot(
 ): LatestSnapshot {
   const serverTime = now.toISOString();
   const astro = computeAstro(config.householdLat, config.householdLon, now);
+  // Resolve the condition icon at READ time from the household astro window so it
+  // tracks the local clock between NWS refreshes (FR-007). Cold start (no good
+  // fetch yet) stays "unavailable"; an empty-text fetch still resolves the icon
+  // from astro but omits the label and is not forced stale (FR-005/FR-006).
+  const conditionIcon = condition.hasObservation
+    ? resolveConditionIcon(
+        condition.conditionText ?? "",
+        now,
+        astro.sunriseUtc,
+        astro.sunsetUtc,
+      )
+    : null;
+  const conditionText =
+    condition.conditionText !== null && condition.conditionText.trim() !== ""
+      ? condition.conditionText
+      : null;
+  const conditionStale = condition.conditionStale;
   // Fetch a window wider than the trend window so a reading at/just beyond the
   // `now - windowHours` boundary exists; deriveBaroTrend anchors on it. Querying
   // exactly `now - windowHours` can never yield a full-window span (the oldest
@@ -54,9 +71,9 @@ export function buildLatestSnapshot(
       reading: null,
       astro,
       baroTrend,
-      conditionIcon: condition.conditionIcon,
-      conditionStale: condition.conditionStale,
-      conditionText: condition.conditionText,
+      conditionIcon,
+      conditionStale,
+      conditionText,
       serverTime,
     });
   }
@@ -72,9 +89,9 @@ export function buildLatestSnapshot(
     reading,
     astro,
     baroTrend,
-    conditionIcon: condition.conditionIcon,
-    conditionStale: condition.conditionStale,
-    conditionText: condition.conditionText,
+    conditionIcon,
+    conditionStale,
+    conditionText,
     serverTime,
   });
 }
