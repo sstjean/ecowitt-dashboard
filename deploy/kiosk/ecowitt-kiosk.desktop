@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Ecowitt Kiosk
+Comment=Full-screen weather dashboard for the wall display
+Exec=/home/steve/kiosk/start-kiosk.sh
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
