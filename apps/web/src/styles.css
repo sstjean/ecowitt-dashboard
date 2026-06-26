@@ -89,6 +89,11 @@ body {
   font-weight: 600;
   color: var(--cp-text);
 }
+.h-date .ord {
+  font-size: 0.6em;
+  vertical-align: 0.45em;
+  line-height: 0;
+}
 .h-time {
   justify-self: end;
   font-size: 28px;
@@ -584,6 +589,7 @@ body {
 .baro-trend {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 .baro-arrow {
@@ -618,6 +624,7 @@ body {
 .bdelta {
   font-size: 13px;
   color: var(--cp-text-muted);
+  text-align: center;
 }
 .bv {
   font-size: clamp(26px, 2.9vw, 38px);
@@ -625,9 +632,21 @@ body {
   line-height: 1;
 }
 .cond-icon {
-  width: clamp(80px, 10vw, 120px);
-  height: auto;
-  font-size: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.cond-glyph {
+  font-size: clamp(44px, 5.5vw, 72px);
+  line-height: 1;
+}
+.cond-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--cp-text-muted);
+  max-width: clamp(90px, 11vw, 140px);
 }
 .baro .cond-icon {
   grid-column: 3;

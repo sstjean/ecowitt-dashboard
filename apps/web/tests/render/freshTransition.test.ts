@@ -64,9 +64,10 @@ function noDataSnap(): LatestSnapshot {
     serverTime: "2026-01-15T22:05:07Z",
     reading: null,
     astro,
-    baroTrend: { direction: "unavailable", deltaHpa: null },
+    baroTrend: { direction: "unavailable", deltaHpa: null, etaMinutes: null },
     conditionIcon: null,
     conditionStale: true,
+    conditionText: null,
   };
 }
 
@@ -78,9 +79,10 @@ function okSnap(): LatestSnapshot {
     serverTime: "2026-06-19T22:05:07Z",
     reading: r,
     astro,
-    baroTrend: { direction: "steady", deltaHpa: 0 },
+    baroTrend: { direction: "steady", deltaHpa: 0, etaMinutes: null },
     conditionIcon: "clear",
     conditionStale: false,
+    conditionText: "Sunny",
   };
 }
 

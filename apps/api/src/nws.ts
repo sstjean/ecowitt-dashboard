@@ -12,6 +12,8 @@ export interface NwsObservation {
 export interface ConditionState {
   conditionIcon: ConditionIcon | null;
   conditionStale: boolean;
+  /** The verbatim NWS label (e.g. "Partly Sunny"); null until the first good fetch. */
+  conditionText: string | null;
 }
 
 /**
@@ -72,18 +74,19 @@ export function conditionIcon(observation: NwsObservation): ConditionIcon {
  * `staleAfterSeconds`. The client never throws to the route (FR-033/FR-057).
  */
 export function createNwsClient(options: NwsClientOptions): NwsClient {
-  let lastGood: { icon: ConditionIcon; atMs: number } | null = null;
+  let lastGood: { icon: ConditionIcon; text: string; atMs: number } | null = null;
   let lastFetchMs = Number.NEGATIVE_INFINITY;
 
   return {
     current(now) {
       if (lastGood === null) {
-        return { conditionIcon: null, conditionStale: true };
+        return { conditionIcon: null, conditionStale: true, conditionText: null };
       }
       const ageMs = now.getTime() - lastGood.atMs;
       return {
         conditionIcon: lastGood.icon,
         conditionStale: ageMs > options.staleAfterSeconds * 1000,
+        conditionText: lastGood.text,
       };
     },
     async refresh(now) {
@@ -97,7 +100,11 @@ export function createNwsClient(options: NwsClientOptions): NwsClient {
           options.userAgent,
           AbortSignal.timeout(options.timeoutMs),
         );
-        lastGood = { icon: conditionIcon(observation), atMs: nowMs };
+        lastGood = {
+          icon: conditionIcon(observation),
+          text: observation.textDescription,
+          atMs: nowMs,
+        };
       } catch {
         // Keep the last good icon; staleness is decided by age in current().
       }

@@ -48,9 +48,10 @@ export const latestSnapshot = {
     sunAltitudeFraction: 0.62,
     moonPhase: 0.25,
   },
-  baroTrend: { direction: "rising", deltaHpa: 1.2 },
+  baroTrend: { direction: "rising", deltaHpa: 1.2, etaMinutes: null },
   conditionIcon: "partly-cloudy",
   conditionStale: false,
+  conditionText: "Partly Sunny",
   serverTime: "2026-06-22T20:19:30Z",
 } as const;
 
@@ -65,8 +66,9 @@ export const noDataSnapshot = {
     sunAltitudeFraction: 0.62,
     moonPhase: 0.25,
   },
-  baroTrend: { direction: "unavailable", deltaHpa: null },
+  baroTrend: { direction: "unavailable", deltaHpa: null, etaMinutes: null },
   conditionIcon: null,
   conditionStale: true,
+  conditionText: null,
   serverTime: "2026-06-22T20:19:30Z",
 } as const;

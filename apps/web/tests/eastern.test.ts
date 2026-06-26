@@ -37,15 +37,15 @@ describe("formatEasternDate", () => {
 
 describe("formatEasternTime", () => {
   it("renders 12-hour Eastern time in summer (EDT)", () => {
-    expect(formatEasternTime(new Date("2026-06-19T22:05:00Z"))).toBe("6:05 PM");
+    expect(formatEasternTime(new Date("2026-06-19T22:05:00Z"))).toBe("6:05 pm");
   });
 
   it("renders 12-hour Eastern time in winter (EST)", () => {
-    expect(formatEasternTime(new Date("2026-01-15T22:05:00Z"))).toBe("5:05 PM");
+    expect(formatEasternTime(new Date("2026-01-15T22:05:00Z"))).toBe("5:05 pm");
   });
 
   it("renders midnight as 12:00 AM Eastern", () => {
     // 04:00Z = 12:00 AM EDT.
-    expect(formatEasternTime(new Date("2026-06-20T04:00:00Z"))).toBe("12:00 AM");
+    expect(formatEasternTime(new Date("2026-06-20T04:00:00Z"))).toBe("12:00 am");
   });
 });

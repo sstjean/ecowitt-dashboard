@@ -15,6 +15,7 @@ const TIME_ZONE = "America/New_York";
 const UNAVAILABLE_CONDITION: ConditionState = {
   conditionIcon: null,
   conditionStale: true,
+  conditionText: null,
 };
 
 /**
@@ -31,13 +32,18 @@ export function buildLatestSnapshot(
 ): LatestSnapshot {
   const serverTime = now.toISOString();
   const astro = computeAstro(config.householdLat, config.householdLon, now);
+  // Fetch a window wider than the trend window so a reading at/just beyond the
+  // `now - windowHours` boundary exists; deriveBaroTrend anchors on it. Querying
+  // exactly `now - windowHours` can never yield a full-window span (the oldest
+  // row is always slightly newer than the bound), which would strand the trend.
   const baroSince = new Date(
-    now.getTime() - config.baroTrendWindowHours * 60 * 60 * 1000,
+    now.getTime() - 2 * config.baroTrendWindowHours * 60 * 60 * 1000,
   ).toISOString();
   const baroTrend = deriveBaroTrend(
     store.getWindow(baroSince),
     config.baroTrendWindowHours,
     config.baroSteadyEpsilonHpa,
+    now,
   );
 
   const latest = store.getLatest();
@@ -50,6 +56,7 @@ export function buildLatestSnapshot(
       baroTrend,
       conditionIcon: condition.conditionIcon,
       conditionStale: condition.conditionStale,
+      conditionText: condition.conditionText,
       serverTime,
     });
   }
@@ -67,6 +74,7 @@ export function buildLatestSnapshot(
     baroTrend,
     conditionIcon: condition.conditionIcon,
     conditionStale: condition.conditionStale,
+    conditionText: condition.conditionText,
     serverTime,
   });
 }

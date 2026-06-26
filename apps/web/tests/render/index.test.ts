@@ -66,9 +66,10 @@ function okSnap(r: LiveReadingSnapshot = reading()): LatestSnapshot {
     serverTime: "2026-06-19T22:05:07Z",
     reading: r,
     astro,
-    baroTrend: { direction: "steady", deltaHpa: 0 },
+    baroTrend: { direction: "steady", deltaHpa: 0, etaMinutes: null },
     conditionIcon: "clear",
     conditionStale: false,
+    conditionText: "Sunny",
   };
 }
 
@@ -79,9 +80,10 @@ function noDataSnap(): LatestSnapshot {
     serverTime: "2026-01-15T22:05:07Z",
     reading: null,
     astro,
-    baroTrend: { direction: "unavailable", deltaHpa: null },
+    baroTrend: { direction: "unavailable", deltaHpa: null, etaMinutes: null },
     conditionIcon: null,
     conditionStale: true,
+    conditionText: null,
   };
 }
 
@@ -123,16 +125,16 @@ describe("mountDashboard", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-19T18:05:09Z"));
     const dashboard = mountDashboard(root);
-    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:09 PM");
+    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:09 pm");
 
     vi.advanceTimersByTime(1000);
-    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 PM");
+    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 pm");
 
     dashboard.update(okSnap());
     expect(root.querySelector("[data-out-temp]")?.textContent).toBe("72");
 
     dashboard.stop();
     vi.advanceTimersByTime(1000);
-    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 PM");
+    expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 pm");
   });
 });

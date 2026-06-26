@@ -115,15 +115,24 @@ describe("GET /api/v1/latest", () => {
     store = openReadStore(dbPath);
     const nws = {
       refresh: async (): Promise<void> => {},
-      current: () => ({ conditionIcon: "clear" as const, conditionStale: false }),
+      current: () => ({
+        conditionIcon: "clear" as const,
+        conditionStale: false,
+        conditionText: "Sunny",
+      }),
     };
     const app = buildServer({ store, config, nws });
     const res = await app.inject({ method: "GET", url: "/api/v1/latest" });
     await app.close();
 
-    const body = res.json() as { conditionIcon: string; conditionStale: boolean };
+    const body = res.json() as {
+      conditionIcon: string;
+      conditionStale: boolean;
+      conditionText: string;
+    };
     expect(body.conditionIcon).toBe("clear");
     expect(body.conditionStale).toBe(false);
+    expect(body.conditionText).toBe("Sunny");
   });
 
   it("returns an explicit no-data envelope (never fabricated zeros) for an empty store", async () => {

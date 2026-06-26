@@ -114,6 +114,12 @@ export type AstronomicalData = z.infer<typeof astronomicalDataSchema>;
 export const barometricTrendSchema = z.strictObject({
   direction: z.enum(["rising", "steady", "falling", "unavailable"]),
   deltaHpa: z.union([z.number(), z.null()]),
+  /**
+   * Minutes until enough history exists to compute the trend. A positive integer
+   * while history is still accumulating, `null` once the trend is available (or
+   * when there is no data at all to estimate from).
+   */
+  etaMinutes: z.union([z.number().int().nonnegative(), z.null()]),
 });
 export type BarometricTrend = z.infer<typeof barometricTrendSchema>;
 
@@ -139,6 +145,8 @@ export const latestSnapshotSchema = z.strictObject({
   baroTrend: barometricTrendSchema,
   conditionIcon: z.union([conditionIconSchema, z.null()]),
   conditionStale: z.boolean(),
+  /** The verbatim NWS sky-condition label (e.g. "Partly Sunny"); null until first fetch. */
+  conditionText: z.union([z.string(), z.null()]),
   serverTime: isoUtc(),
 });
 export type LatestSnapshot = z.infer<typeof latestSnapshotSchema>;
@@ -150,3 +158,62 @@ export const healthSchema = z.strictObject({
   serverTime: isoUtc(),
 });
 export type Health = z.infer<typeof healthSchema>;
+
+// ---------------------------------------------------------------------------
+// Cloud `real_time` source (Feature 002 / LiveMock). Validates the inner
+// `data` object the fetcher hands the adapter (`cloudRealtimeToGateway`);
+// the envelope `code`/`msg` are handled by the fetcher (research D2).
+// ---------------------------------------------------------------------------
+
+/** One cloud metric as Ecowitt emits it: string-valued `{ time?, unit?, value }`. */
+export const cloudMetricSchema = z.object({
+  time: z.string().optional(),
+  unit: z.string().optional(),
+  value: z.string(),
+});
+export type CloudMetric = z.infer<typeof cloudMetricSchema>;
+
+/** A named cloud group of metrics, e.g. `outdoor` or `wind`; loose so extra
+ * metrics are tolerated and ignored. */
+const cloudGroup = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
+
+/**
+ * The cloud `real_time` `data` object: only the groups the adapter consumes are
+ * required (a partial payload is rejected, FR-008). Unmapped groups (and the
+ * tipping-bucket `rainfall` group, D6) are tolerated and ignored.
+ */
+export const cloudRealtimeSchema = z.looseObject({
+  outdoor: cloudGroup({
+    temperature: cloudMetricSchema,
+    feels_like: cloudMetricSchema,
+    dew_point: cloudMetricSchema,
+    humidity: cloudMetricSchema,
+  }),
+  indoor: cloudGroup({
+    temperature: cloudMetricSchema,
+    humidity: cloudMetricSchema,
+  }),
+  solar_and_uvi: cloudGroup({
+    solar: cloudMetricSchema,
+    uvi: cloudMetricSchema,
+  }),
+  wind: cloudGroup({
+    wind_speed: cloudMetricSchema,
+    wind_gust: cloudMetricSchema,
+    wind_direction: cloudMetricSchema,
+  }),
+  pressure: cloudGroup({
+    relative: cloudMetricSchema,
+    absolute: cloudMetricSchema,
+  }),
+  rainfall_piezo: cloudGroup({
+    rain_rate: cloudMetricSchema,
+    event: cloudMetricSchema,
+    "1_hour": cloudMetricSchema,
+    daily: cloudMetricSchema,
+    weekly: cloudMetricSchema,
+    monthly: cloudMetricSchema,
+    yearly: cloudMetricSchema,
+  }),
+});
+export type CloudRealtimeData = z.infer<typeof cloudRealtimeSchema>;

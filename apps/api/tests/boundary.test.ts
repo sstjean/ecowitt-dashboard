@@ -40,6 +40,29 @@ describe("architectural import boundaries", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps the cloud fetcher a poller-only dependency (FR-002, D3)", () => {
+    const offenders = allSrc.filter(
+      (file) =>
+        importsOf(file).some((spec) => spec.includes("ecowittCloud")) &&
+        !file.includes(join("apps", "poller", "src")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the shared cloud adapter pure — no fetch/node/I/O imports (FR-007)", () => {
+    const adapter = join(REPO_ROOT, "packages/shared/src/cloudMapping.ts");
+    const forbidden = importsOf(adapter).filter(
+      (spec) =>
+        spec.startsWith("node:") ||
+        spec.includes("gatewayClient") ||
+        spec.includes("ecowittCloud") ||
+        spec.includes("better-sqlite3") ||
+        spec === "undici" ||
+        spec.includes("/store"),
+    );
+    expect(forbidden).toEqual([]);
+  });
+
   it("lets the web reach data only via api.ts — never the store or gateway (FR-036)", () => {
     const offenders = webFiles.filter((file) =>
       importsOf(file).some(

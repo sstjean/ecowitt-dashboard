@@ -97,6 +97,7 @@ describe("poll → store → API pipeline", () => {
     const snap1 = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:00Z"), {
       conditionIcon: null,
       conditionStale: true,
+      conditionText: null,
     });
     expect(snap1.status).toBe("ok");
     expect(snap1.reading?.outdoorTempF).toBe(72.4);
@@ -116,6 +117,7 @@ describe("poll → store → API pipeline", () => {
     const snap2 = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:33:00Z"), {
       conditionIcon: null,
       conditionStale: true,
+      conditionText: null,
     });
     expect(snap2.reading?.outdoorTempF).toBe(80);
     expect(snap2.reading?.dayHighF).toBe(80);

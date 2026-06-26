@@ -106,12 +106,12 @@ test.describe("live dashboard — populated", () => {
 
   test("renders sun times and the clock in Eastern time", async ({ page }) => {
     // 10:27Z → 6:27 AM EDT, 00:25Z(+1d) → 8:25 PM EDT: proves America/New_York.
-    await expect(page.locator("[data-sunrise]")).toHaveText("6:27 AM");
-    await expect(page.locator("[data-sunset]")).toHaveText("8:25 PM");
+    await expect(page.locator("[data-sunrise]")).toHaveText("6:27 am");
+    await expect(page.locator("[data-sunset]")).toHaveText("8:25 pm");
 
     // The header clock is live wall-time; assert its Eastern 12-hour shape.
     await expect(page.locator(".h-time")).toHaveText(
-      /^\d{1,2}:\d{2}:\d{2}\s(AM|PM)$/,
+      /^\d{1,2}:\d{2}:\d{2}\s(am|pm)$/,
     );
     await expect(page.locator(".h-date")).toHaveText(
       /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), [A-Z][a-z]+ \d{1,2}(st|nd|rd|th), \d{4}$/,

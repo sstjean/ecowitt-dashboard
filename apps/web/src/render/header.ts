@@ -1,5 +1,5 @@
 import { el, svgEl } from "./dom.ts";
-import { formatEasternDate, formatEasternClock } from "../format/eastern.ts";
+import { easternDateParts, formatEasternClock } from "../format/eastern.ts";
 
 export interface HeaderHandle {
   /** The `<header>` element to mount. */
@@ -55,7 +55,12 @@ export function createHeader(doc: Document): HeaderHandle {
   const element = el(doc, "header", { class: "header" }, hamburger, date, time, nav);
 
   function update(at: Date): void {
-    date.textContent = formatEasternDate(at);
+    const { lead, ordinal, trail } = easternDateParts(at);
+    date.replaceChildren(
+      doc.createTextNode(lead),
+      el(doc, "sup", { class: "ord" }, ordinal),
+      doc.createTextNode(trail),
+    );
     time.textContent = formatEasternClock(at);
   }
 
