@@ -8,6 +8,11 @@
 set -euo pipefail
 
 KIOSK_USER=kiosk
+if ! id -u "$KIOSK_USER" >/dev/null 2>&1; then
+  echo "ERROR: user '$KIOSK_USER' does not exist. Create it first" \
+       "(e.g. 'sudo adduser --disabled-password $KIOSK_USER') and re-run." >&2
+  exit 1
+fi
 KIOSK_HOME="$(getent passwd "$KIOSK_USER" | cut -d: -f6)"
 KIOSK_UID="$(id -u "$KIOSK_USER")"
 AUTOSTART_DIR="$KIOSK_HOME/.config/autostart"

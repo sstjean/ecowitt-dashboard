@@ -17,7 +17,11 @@ install -m 0755 "${SRC_DIR}/start-kiosk.sh" "${KIOSK_DIR}/start-kiosk.sh"
 
 echo "==> Enabling autostart"
 mkdir -p "${AUTOSTART_DIR}"
-install -m 0644 "${SRC_DIR}/ecowitt-kiosk.desktop" "${AUTOSTART_DIR}/ecowitt-kiosk.desktop"
+# Render the autostart entry for the *current* user's install dir so it works
+# regardless of which account runs this (not hard-coded to /home/steve).
+sed "s|__KIOSK_DIR__|${KIOSK_DIR}|g" "${SRC_DIR}/ecowitt-kiosk.desktop" \
+  > "${AUTOSTART_DIR}/ecowitt-kiosk.desktop"
+chmod 0644 "${AUTOSTART_DIR}/ecowitt-kiosk.desktop"
 
 echo "==> Disabling automatic screen blanking/sleep (GNOME)"
 gsettings set org.gnome.desktop.session idle-delay 0 2>/dev/null || true
