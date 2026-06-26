@@ -3,6 +3,7 @@ import {
   latestSnapshotSchema,
   liveReadingSnapshotSchema,
   projectLiveReading,
+  type ConditionIcon,
   type LatestSnapshot,
 } from "@ecowitt/shared";
 import type { ReadStore } from "../../store.ts";
@@ -34,21 +35,30 @@ export function buildLatestSnapshot(
   const astro = computeAstro(config.householdLat, config.householdLon, now);
   // Resolve the condition icon at READ time from the household astro window so it
   // tracks the local clock between NWS refreshes (FR-007). Cold start (no good
-  // fetch yet) stays "unavailable"; an empty-text fetch still resolves the icon
-  // from astro but omits the label and is not forced stale (FR-005/FR-006).
-  const conditionIcon = condition.hasObservation
-    ? resolveConditionIcon(
-        condition.conditionText ?? "",
-        now,
-        astro.sunriseUtc,
-        astro.sunsetUtc,
-      )
-    : null;
-  const conditionText =
-    condition.conditionText !== null && condition.conditionText.trim() !== ""
-      ? condition.conditionText
-      : null;
-  const conditionStale = condition.conditionStale;
+  // fetch yet) is forced "unavailable" — null icon/text and stale — regardless of
+  // what the caller passed (cold start must be stale; FR-005). An empty-text fetch
+  // still resolves the icon from astro but omits the label and is not forced stale
+  // (FR-006).
+  let conditionIcon: ConditionIcon | null;
+  let conditionText: string | null;
+  let conditionStale: boolean;
+  if (condition.hasObservation) {
+    conditionIcon = resolveConditionIcon(
+      condition.conditionText ?? "",
+      now,
+      astro.sunriseUtc,
+      astro.sunsetUtc,
+    );
+    conditionText =
+      condition.conditionText !== null && condition.conditionText.trim() !== ""
+        ? condition.conditionText
+        : null;
+    conditionStale = condition.conditionStale;
+  } else {
+    conditionIcon = null;
+    conditionText = null;
+    conditionStale = true;
+  }
   // Fetch a window wider than the trend window so a reading at/just beyond the
   // `now - windowHours` boundary exists; deriveBaroTrend anchors on it. Querying
   // exactly `now - windowHours` can never yield a full-window span (the oldest

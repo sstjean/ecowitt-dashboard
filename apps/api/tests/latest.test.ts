@@ -133,7 +133,7 @@ describe("GET /api/v1/latest", () => {
     const body = res.json() as {
       conditionIcon: string;
       conditionStale: boolean;
-      conditionText: string;
+      conditionText: string | null;
     };
     expect(body.conditionIcon).toBe("cloudy");
     expect(body.conditionStale).toBe(false);
@@ -184,6 +184,21 @@ describe("buildLatestSnapshot condition resolution (read-time, astro-driven)", (
     };
     const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
     expect(snap.status).toBe("no-data");
+    expect(snap.conditionIcon).toBeNull();
+    expect(snap.conditionText).toBeNull();
+    expect(snap.conditionStale).toBe(true);
+  });
+
+  it("forces the unavailable contract when no observation, even if the caller says not stale", () => {
+    store = openReadStore(dbPath); // empty store ⇒ no-data envelope
+    // Defensive: a no-observation state must always read stale (FR-005), so a
+    // bogus { hasObservation: false, conditionStale: false } is overridden.
+    const condition: ConditionState = {
+      conditionText: null,
+      conditionStale: false,
+      hasObservation: false,
+    };
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
     expect(snap.conditionIcon).toBeNull();
     expect(snap.conditionText).toBeNull();
     expect(snap.conditionStale).toBe(true);
