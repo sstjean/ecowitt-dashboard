@@ -139,9 +139,9 @@ describe("cloud poller resilience through failures", () => {
 
     // Through all three failures the last good reading is still served.
     const held = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:35Z"), {
-      conditionIcon: null,
       conditionStale: true,
       conditionText: null,
+      hasObservation: false,
     });
     expect(held.status).toBe("ok");
     expect(held.reading?.outdoorTempF).toBe(72.4);
@@ -158,9 +158,9 @@ describe("cloud poller resilience through failures", () => {
     expect(recovered?.outdoorTempF).toBe(80);
 
     const back = buildLatestSnapshot(readStore, config, new Date("2026-06-21T15:31:50Z"), {
-      conditionIcon: null,
       conditionStale: true,
       conditionText: null,
+      hasObservation: false,
     });
     expect(back.reading?.outdoorTempF).toBe(80);
     expect(
