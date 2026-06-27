@@ -7,6 +7,8 @@ import type { FullMetricMap } from "@ecowitt/shared";
 import { buildServer } from "../src/server.ts";
 import { openReadStore, type ReadStore } from "../src/store.ts";
 import { degToCardinal } from "../src/enrich.ts";
+import { buildLatestSnapshot } from "../src/routes/v1/latest.ts";
+import type { ConditionState } from "../src/nws.ts";
 import type { ApiConfig } from "../src/config.ts";
 
 const config: ApiConfig = {
@@ -110,15 +112,18 @@ describe("GET /api/v1/latest", () => {
     expect(Number.isNaN(Date.parse(body.serverTime))).toBe(false);
   });
 
-  it("threads the injected NWS condition into the envelope", async () => {
+  it("resolves the injected NWS condition at read time (not echoed) into the envelope", async () => {
     seed("2026-06-21T15:30:00.000Z", sampleMetrics());
     store = openReadStore(dbPath);
+    // The new ConditionState carries text only; the route RESOLVES the icon.
+    // "Mostly Cloudy" is day/night-independent, so the assertion is
+    // deterministic against the route's real `now`.
     const nws = {
       refresh: async (): Promise<void> => {},
-      current: () => ({
-        conditionIcon: "clear" as const,
+      current: (): ConditionState => ({
+        conditionText: "Mostly Cloudy",
         conditionStale: false,
-        conditionText: "Sunny",
+        hasObservation: true,
       }),
     };
     const app = buildServer({ store, config, nws });
@@ -128,11 +133,11 @@ describe("GET /api/v1/latest", () => {
     const body = res.json() as {
       conditionIcon: string;
       conditionStale: boolean;
-      conditionText: string;
+      conditionText: string | null;
     };
-    expect(body.conditionIcon).toBe("clear");
+    expect(body.conditionIcon).toBe("cloudy");
     expect(body.conditionStale).toBe(false);
-    expect(body.conditionText).toBe("Sunny");
+    expect(body.conditionText).toBe("Mostly Cloudy");
   });
 
   it("returns an explicit no-data envelope (never fabricated zeros) for an empty store", async () => {
@@ -160,5 +165,126 @@ describe("GET /api/v1/latest", () => {
     expect(body.conditionIcon).toBeNull();
     expect(body.conditionStale).toBe(true);
     expect(Number.isNaN(Date.parse(body.serverTime))).toBe(false);
+  });
+});
+
+// Day/night-dependent resolution is driven through buildLatestSnapshot directly
+// so `now` is injectable (the route handler uses a non-injectable `new Date()`).
+// config.householdLat/lon = 40,-75: 2026-06-21 sunrise ~09:25Z, sunset ~00:31Z(+1).
+const DAY_NOW = new Date("2026-06-21T16:00:00.000Z"); // 12:00 EDT — daytime
+const NIGHT_NOW = new Date("2026-06-21T07:00:00.000Z"); // 03:00 EDT — before sunrise
+
+describe("buildLatestSnapshot condition resolution (read-time, astro-driven)", () => {
+  it("passes cold-start through unchanged: no observation ⇒ null icon/text, stale", () => {
+    store = openReadStore(dbPath); // empty store ⇒ no-data envelope
+    const condition: ConditionState = {
+      conditionText: null,
+      conditionStale: true,
+      hasObservation: false,
+    };
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
+    expect(snap.status).toBe("no-data");
+    expect(snap.conditionIcon).toBeNull();
+    expect(snap.conditionText).toBeNull();
+    expect(snap.conditionStale).toBe(true);
+  });
+
+  it("forces the unavailable contract when no observation, even if the caller says not stale", () => {
+    store = openReadStore(dbPath); // empty store ⇒ no-data envelope
+    // Defensive: a no-observation state must always read stale (FR-005), so a
+    // bogus { hasObservation: false, conditionStale: false } is overridden.
+    const condition: ConditionState = {
+      conditionText: null,
+      conditionStale: false,
+      hasObservation: false,
+    };
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
+    expect(snap.conditionIcon).toBeNull();
+    expect(snap.conditionText).toBeNull();
+    expect(snap.conditionStale).toBe(true);
+  });
+
+  it("omits the label for an empty-text fetch but still resolves the icon (not forced stale)", () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    const condition: ConditionState = {
+      conditionText: "",
+      conditionStale: false,
+      hasObservation: true,
+    };
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
+    expect(snap.conditionIcon).toBe("clear"); // daytime, never night
+    expect(snap.conditionText).toBeNull(); // label omitted, not a blank string
+    expect(snap.conditionStale).toBe(false); // empty text is not why it greys
+  });
+
+  it("resolves clear-day good text to clear and keeps the label", () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    const condition: ConditionState = {
+      conditionText: "Sunny",
+      conditionStale: false,
+      hasObservation: true,
+    };
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
+    expect(snap.conditionIcon).toBe("clear");
+    expect(snap.conditionText).toBe("Sunny");
+  });
+
+  it("resolves the icon from astro even when an observation carries null text", () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    // Defensive: hasObservation true with null text coerces to "" for resolution.
+    const condition: ConditionState = {
+      conditionText: null,
+      conditionStale: false,
+      hasObservation: true,
+    };
+    expect(buildLatestSnapshot(store, config, DAY_NOW, condition).conditionIcon).toBe("clear");
+    expect(buildLatestSnapshot(store, config, NIGHT_NOW, condition).conditionIcon).toBe("night");
+  });
+
+  it("flips clear↔night across the astro boundary from ONE cached observation (no refetch)", () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    const cached: ConditionState = {
+      conditionText: "Clear",
+      conditionStale: false,
+      hasObservation: true,
+    };
+    // Same observation object, two different `now` values, no fetch in between.
+    expect(buildLatestSnapshot(store, config, DAY_NOW, cached).conditionIcon).toBe("clear");
+    expect(buildLatestSnapshot(store, config, NIGHT_NOW, cached).conditionIcon).toBe("night");
+  });
+
+  it("flows last-good staleness through to the envelope (greys by age, icon still resolved)", () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    const condition: ConditionState = {
+      conditionText: "Clear",
+      conditionStale: true,
+      hasObservation: true,
+    };
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
+    expect(snap.conditionIcon).toBe("clear");
+    expect(snap.conditionStale).toBe(true);
+  });
+
+  it("preserves the external condition contract: ok envelope emits all three fields", () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    const condition: ConditionState = {
+      conditionText: "Mostly Cloudy",
+      conditionStale: false,
+      hasObservation: true,
+    };
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, condition);
+    expect(snap.status).toBe("ok");
+    expect(Object.keys(snap)).toEqual(
+      expect.arrayContaining(["conditionIcon", "conditionStale", "conditionText"]),
+    );
+    expect(snap.conditionIcon).toBe("cloudy");
+    expect(typeof snap.conditionStale).toBe("boolean");
+    expect(snap.conditionText).toBe("Mostly Cloudy");
   });
 });

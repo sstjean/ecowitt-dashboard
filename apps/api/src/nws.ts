@@ -2,23 +2,27 @@ import { type ConditionIcon } from "@ecowitt/shared";
 
 /** Normalised NWS latest-observation input for the pure mapping. */
 export interface NwsObservation {
-  /** NWS `textDescription`, e.g. "Partly Cloudy". */
+  /** NWS `textDescription`, e.g. "Partly Cloudy" (the supported, non-deprecated field). */
   textDescription: string;
-  /** Derived from the NWS icon URL day/night segment. */
-  isDaytime: boolean;
 }
 
-/** The resolved condition exposed to the latest route. */
+/**
+ * The cached condition exposed to the latest route. Carries the raw NWS text
+ * (day/night-agnostic); the icon is resolved at read time from the household
+ * astro window (see `resolveConditionIcon`), so the client stores no icon.
+ * `hasObservation` distinguishes a cold start (no successful fetch yet) from a
+ * successful fetch that happened to return empty text.
+ */
 export interface ConditionState {
-  conditionIcon: ConditionIcon | null;
-  conditionStale: boolean;
-  /** The verbatim NWS label (e.g. "Partly Sunny"); null until the first good fetch. */
+  /** Verbatim NWS label; null before the first good fetch (or "" when the fetch had none). */
   conditionText: string | null;
+  conditionStale: boolean;
+  hasObservation: boolean;
 }
 
 /**
  * Fetch the latest NWS observation. Injected so tests never touch the network
- * (FR-057); the production fetcher lives in `index.ts` (coverage-excluded).
+ * (FR-010); the production fetcher lives in `index.ts` (coverage-excluded).
  */
 export type ObservationFetcher = (
   userAgent: string,
@@ -49,13 +53,31 @@ const KEYWORD_ICONS: ReadonlyArray<readonly [readonly string[], ConditionIcon]> 
 ];
 
 /**
- * Pure mapping of an NWS observation to the icon vocabulary (data-model.md §7a):
- * `clear | partly-cloudy | cloudy | fog | rainy | snow | thunderstorm | night`.
- * A clear sky maps to `night` after dark; cloud cover and precipitation are
- * day/night agnostic.
+ * Decide day vs night for the condition icon from the household's own astro
+ * window (FR-001), using a half-open `[sunrise, sunset)` interval: the exact
+ * sunrise instant counts as day and the exact sunset instant as night, applied
+ * consistently. Total function over the injected ISO instants — never throws.
  */
-export function conditionIcon(observation: NwsObservation): ConditionIcon {
-  const text = observation.textDescription.toLowerCase();
+export function isDaytime(now: Date, sunriseUtc: string, sunsetUtc: string): boolean {
+  const t = now.getTime();
+  return t >= Date.parse(sunriseUtc) && t < Date.parse(sunsetUtc);
+}
+
+/**
+ * Pure mapping of NWS text + the household astro window to the icon vocabulary
+ * (data-model.md §5): `clear | partly-cloudy | cloudy | fog | rainy | snow |
+ * thunderstorm | night`. Keyword and cloud-cover precedence is day/night
+ * agnostic (FR-008); only a clear or empty sky consults `isDaytime`, mapping to
+ * `clear` by day and `night` after dark (FR-005). Never consults the deprecated
+ * NWS `icon` URL (FR-002/FR-003).
+ */
+export function resolveConditionIcon(
+  textDescription: string,
+  now: Date,
+  sunriseUtc: string,
+  sunsetUtc: string,
+): ConditionIcon {
+  const text = textDescription.toLowerCase();
   for (const [keywords, icon] of KEYWORD_ICONS) {
     if (keywords.some((keyword) => text.includes(keyword))) {
       return icon;
@@ -64,29 +86,31 @@ export function conditionIcon(observation: NwsObservation): ConditionIcon {
   if (text.includes("cloud") || text.includes("overcast")) {
     return text.includes("partly") ? "partly-cloudy" : "cloudy";
   }
-  return observation.isDaytime ? "clear" : "night";
+  return isDaytime(now, sunriseUtc, sunsetUtc) ? "clear" : "night";
 }
 
 /**
  * Build an offline-first NWS client. The latest route reads `current()`
  * synchronously and triggers `refresh()` in the background; a failed or timed-out
- * fetch keeps the last good icon, which greys (stale) once it ages past
- * `staleAfterSeconds`. The client never throws to the route (FR-033/FR-057).
+ * fetch keeps the last good text, which greys (stale) once it ages past
+ * `staleAfterSeconds`. The icon itself is resolved from astro at read time by the
+ * route (`resolveConditionIcon`), not stored here. The client never throws to the
+ * route.
  */
 export function createNwsClient(options: NwsClientOptions): NwsClient {
-  let lastGood: { icon: ConditionIcon; text: string; atMs: number } | null = null;
+  let lastGood: { text: string; atMs: number } | null = null;
   let lastFetchMs = Number.NEGATIVE_INFINITY;
 
   return {
     current(now) {
       if (lastGood === null) {
-        return { conditionIcon: null, conditionStale: true, conditionText: null };
+        return { conditionText: null, conditionStale: true, hasObservation: false };
       }
       const ageMs = now.getTime() - lastGood.atMs;
       return {
-        conditionIcon: lastGood.icon,
-        conditionStale: ageMs > options.staleAfterSeconds * 1000,
         conditionText: lastGood.text,
+        conditionStale: ageMs > options.staleAfterSeconds * 1000,
+        hasObservation: true,
       };
     },
     async refresh(now) {
@@ -100,13 +124,9 @@ export function createNwsClient(options: NwsClientOptions): NwsClient {
           options.userAgent,
           AbortSignal.timeout(options.timeoutMs),
         );
-        lastGood = {
-          icon: conditionIcon(observation),
-          text: observation.textDescription,
-          atMs: nowMs,
-        };
+        lastGood = { text: observation.textDescription, atMs: nowMs };
       } catch {
-        // Keep the last good icon; staleness is decided by age in current().
+        // Keep the last good text; staleness is decided by age in current().
       }
     },
   };
@@ -119,7 +139,7 @@ interface StationsResponse {
   features: Array<{ id: string }>;
 }
 interface LatestObservationResponse {
-  properties: { textDescription: string; icon: string | null };
+  properties: { textDescription?: string };
 }
 
 async function getGeoJson<T>(
@@ -141,8 +161,10 @@ async function getGeoJson<T>(
 /**
  * The production `ObservationFetcher`: resolve the household lat/long to its
  * nearest NWS station and read the latest observation (api.weather.gov, no API
- * key, contact `User-Agent` required). Day/night is taken from the icon URL.
- * `fetchImpl` is injected so the HTTP path is unit-tested without live network.
+ * key, contact `User-Agent` required). Only the supported `textDescription` is
+ * consumed (coerced to "" when absent); the deprecated `icon` URL is ignored
+ * (FR-002/FR-003). `fetchImpl` is injected so the HTTP path is unit-tested
+ * without live network.
  */
 export function createHttpObservationFetcher(
   lat: number,
@@ -168,9 +190,6 @@ export function createHttpObservationFetcher(
       signal,
       fetchImpl,
     );
-    return {
-      textDescription: latest.properties.textDescription,
-      isDaytime: (latest.properties.icon ?? "").includes("/day/"),
-    };
+    return { textDescription: latest.properties.textDescription ?? "" };
   };
 }
