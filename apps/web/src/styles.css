@@ -7,11 +7,14 @@
   --cp-bg-elevated: #343231;
   --cp-surface: #292929;
   --cp-surface-soft: #2e2e2e;
-  --cp-border: #474747;
-  --cp-border-strong: #5f5f5f;
+  --cp-border: #5a5a5a;
+  --cp-border-strong: #8c8c8c;
   --cp-text: #dedede;
-  --cp-text-muted: #919191;
+  --cp-text-muted: #b4b4b4;
   --cp-text-soft: #b0b0b0;
+  /* Meaningful outlines (e.g. the rain-drop) that must read from across the
+     room — kept at the soft-text level for >= 4.5:1 on the dark background. */
+  --cp-outline: #b0b0b0;
   --cp-accent: #fd8ea1;
   --cp-accent-hover: #fb7b91;
   --cp-accent-soft: rgba(253, 142, 161, 0.14);
@@ -32,7 +35,8 @@ body {
   margin: 0;
 }
 body {
-  font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI",
+    Roboto, "Noto Sans", sans-serif;
   background: var(--cp-bg);
   color: var(--cp-text);
   -webkit-font-smoothing: antialiased;
@@ -287,6 +291,7 @@ body {
 .ring-center .big .unit {
   font-size: 0.42em;
   color: var(--cp-text-muted);
+  vertical-align: super;
 }
 .ring-wrap.ind .ring-center .big {
   font-size: clamp(20px, 2.6vw, 34px);
@@ -695,5 +700,151 @@ body {
   }
   .ring-wrap.ind {
     height: clamp(110px, 20vh, 175px);
+  }
+}
+
+/* ---------- Wall kiosk: Surface Pro 3 at native 2160×1440, viewed from ~3 m.
+   Raise the capped clamp ceilings and bump the fixed-px secondary text so the
+   gauges, readouts, and condition icon are legible across the room. Scoped to
+   the kiosk panel size so 1080p dev monitors and phones are untouched. The
+   fluid `vw` term is kept so 1800→2160 still scales smoothly. ---------- */
+@media (min-width: 1800px) and (min-height: 1200px) {
+  .h-date,
+  .h-time {
+    font-size: 38px;
+  }
+  .card h3 {
+    font-size: 16px;
+  }
+  .glabel {
+    font-size: 20px;
+  }
+  /* Rebalance the right column: indoor ~20% taller, rain ~20% shorter, baro
+     takes the remainder. Proportional grow (basis 0) so it holds at any kiosk
+     height, not just 1440. */
+  [data-panel="indoor"] {
+    flex: 452 1 0;
+  }
+  [data-panel="rain"] {
+    flex: 448 1 0;
+  }
+  [data-panel="baro"] {
+    flex: 430 1 0;
+  }
+  /* Let the gauges grow into the tall kiosk cards instead of leaving a band of
+     empty space below them. The card flex box + max-height:100% still bound
+     each ring, so these raised ceilings fill space without overflowing. */
+  .ring-wrap,
+  .ring-wrap.wind {
+    height: clamp(290px, 34vh, 440px);
+  }
+  .ring-wrap.ind {
+    height: clamp(220px, 26vh, 360px);
+  }
+  .ring .track,
+  .ring .val {
+    stroke-width: 18;
+  }
+  .ring-center .big {
+    font-size: clamp(88px, 6.5vw, 124px);
+  }
+  .ring-wrap.ind .ring-center .big {
+    font-size: clamp(64px, 4.6vw, 96px);
+  }
+  .ring-center .hl {
+    font-size: 24px;
+  }
+  .metric .m-val {
+    font-size: 34px;
+  }
+  .metric .m-lbl {
+    font-size: 18px;
+  }
+  .wind-center .ws {
+    font-size: clamp(56px, 4.4vw, 76px);
+  }
+  .wind-center .wu,
+  .wind-center .gust {
+    font-size: 22px;
+  }
+  /* Narrow the summary grid to a fixed band and let the daily-total column take
+     the freed space, so "Today's Rainfall" can be the hero readout. */
+  .rain-body {
+    grid-template-columns: auto 1fr auto;
+  }
+  .rain-grid {
+    margin-left: 0;
+    width: clamp(190px, 14vw, 250px);
+  }
+  .rain-main .rv {
+    font-size: clamp(64px, 6.5vw, 112px);
+  }
+  .rain-main .rl {
+    font-size: 17px;
+  }
+  .rain-rate {
+    font-size: 17px;
+  }
+  .rain-grid .rr {
+    font-size: 21px;
+  }
+  .drop-wrap {
+    width: clamp(110px, 8vw, 160px);
+  }
+  .arc-wrap {
+    transform: translateY(40px);
+  }
+  .arc-svg path {
+    stroke-width: 5;
+  }
+  .arc-svg line {
+    stroke-width: 2;
+  }
+  .astro .read .v {
+    font-size: 48px;
+  }
+  .astro .read .v .u {
+    font-size: 26px;
+  }
+  .astro .read .l {
+    font-size: 18px;
+  }
+  .astro-time-vals,
+  .astro-times .read .v {
+    font-size: 30px;
+  }
+  .astro-times .read .l {
+    font-size: 16px;
+  }
+  .moon {
+    right: 32px;
+    top: -99px;
+  }
+  .moon .moon-icon {
+    width: 162px;
+    height: 162px;
+  }
+  .moon .moon-lbl {
+    font-size: 18px;
+    margin-top: 6px;
+  }
+  .bv {
+    font-size: clamp(58px, 4.6vw, 84px);
+  }
+  .baro-info {
+    padding-left: 56px;
+  }
+  .baro-arrow {
+    font-size: 38px;
+  }
+  .baro .bcaption,
+  .bdelta {
+    font-size: 24px;
+  }
+  .cond-glyph {
+    font-size: clamp(156px, 8vw, 196px);
+  }
+  .cond-label {
+    font-size: 28px;
   }
 }
