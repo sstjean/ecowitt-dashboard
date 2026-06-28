@@ -36,3 +36,12 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
       - run: npm run test:e2e -w @ecowitt/web
+
+  kiosk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck + bats
+        run: sudo apt-get update && sudo apt-get install -y shellcheck bats
+      - name: Lint scripts and run bats helper suite
+        run: npm run test:kiosk
