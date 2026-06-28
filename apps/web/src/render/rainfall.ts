@@ -123,7 +123,7 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
       ),
       svgEl(doc, "path", {
         d: DROP_PATH, fill: "none",
-        stroke: "var(--cp-border-strong)", "stroke-width": "2",
+        stroke: "var(--cp-outline)", "stroke-width": "3",
       }),
     ),
   );

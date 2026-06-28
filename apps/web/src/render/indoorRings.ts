@@ -56,5 +56,8 @@ export function renderIndoorRings(container: HTMLElement, data: IndoorRingsData)
     gauge(doc, humidity.wrap, "Indoor Humidity"),
   );
 
-  container.replaceChildren(gauges);
+  container.replaceChildren(
+    el(doc, "h3", { class: "inline" }, "Indoor"),
+    gauges,
+  );
 }
