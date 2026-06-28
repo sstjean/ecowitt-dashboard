@@ -1,3 +1,7 @@
+// Self-hosted variable Inter (latin loads via unicode-range) so every OS —
+// notably the Ubuntu kiosk — renders the same face instead of a generic
+// fallback. font-display: swap ships in the bundled @font-face rules.
+import "@fontsource-variable/inter/wght.css";
 import { fetchLatest } from "./api.ts";
 import { startPollLoop } from "./main.ts";
 import { mountDashboard } from "./render/index.ts";
