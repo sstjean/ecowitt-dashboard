@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -u
+URL="${KIOSK_URL:-http://192.168.10.5:8090/}"
+FLAGS=(
+  --password-store=basic
+  --kiosk
+  --ozone-platform=wayland
+  --force-device-scale-factor=1
+  --noerrdialogs --disable-infobars
+  --disable-session-crashed-bubble
+  --disable-features=TranslateUI
+  --no-first-run --fast --fast-start
+  --check-for-update-interval=31536000
+  --overscroll-history-navigation=0
+  --user-data-dir=/home/kiosk/.config/kiosk-chrome
+)
+if [ "${KIOSK_DEBUG:-0}" = "1" ]; then
+  FLAGS+=(--remote-debugging-port=9222 --remote-allow-origins=*)
+fi
+while true; do
+  /usr/bin/google-chrome-stable "${FLAGS[@]}" "$URL"
+  echo "kiosk-weather: chrome exited ($?), relaunching in 2s" >&2
+  sleep 2
+done

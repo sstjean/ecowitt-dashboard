@@ -11,6 +11,9 @@ build/
 .env.local
 .env.*.local
 
+# Kiosk provisioning secret (operator-supplied WiFi PSK) — only .env.example is committed
+deploy/kiosk/.env
+
 # SQLite data + WAL sidecars
 *.sqlite
 *.sqlite-shm

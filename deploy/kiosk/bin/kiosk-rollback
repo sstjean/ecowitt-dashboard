@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Revert the wall kiosk back to the GNOME/gdm desktop session.
+set -uo pipefail
+systemctl disable kiosk.service 2>/dev/null || true
+systemctl stop kiosk.service 2>/dev/null || true
+systemctl enable gdm 2>/dev/null || systemctl enable gdm3 2>/dev/null || true
+systemctl start gdm 2>/dev/null || systemctl start gdm3 2>/dev/null || true
+echo "rolled back to gdm/GNOME"
