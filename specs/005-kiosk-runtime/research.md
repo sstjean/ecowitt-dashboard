@@ -109,6 +109,10 @@ the captured artifacts at `/tmp/kiosk-capture/` fully specify the runtime.
 
 ## D7. Launcher flag set (full rationale)
 
+> The [launcher contract](contracts/kiosk-launcher.md) is the **authoritative**
+> source for the exact flag set; this table and data-model §E5 are explanatory
+> and must reference it rather than diverge.
+
 `/usr/local/bin/kiosk-weather` (captured at `/tmp/kiosk-capture/kiosk-weather`,
 mode 0755) runs Chrome with:
 
@@ -164,10 +168,11 @@ mode 0755) runs Chrome with:
   `Conflicts=getty@tty1`, cage owns tty1 cleanly at boot (FR-007, FR-008).
 - **Rollback / break-glass** (FR-020):
   - `kiosk-rollback` (captured at `/tmp/kiosk-capture/kiosk-rollback`)
-    disables+stops `kiosk.service` and re-enables+starts gdm to recover the
-    normal desktop.
+    disables+stops `kiosk.service` and re-enables+starts the display manager
+    (`gdm3` on Ubuntu 24.04; the helper tries `gdm` then `gdm3`) to recover
+    the normal desktop.
   - For a device that won't boot at all, the documented break-glass path is
-    **GRUB recovery mode** → re-enable gdm / disable kiosk.service manually.
+    **GRUB recovery mode** → re-enable `gdm3` / disable kiosk.service manually.
 
 ## D10. Verification tooling — `grim`
 

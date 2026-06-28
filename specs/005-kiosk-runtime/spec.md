@@ -22,7 +22,7 @@ The kiosk device (a wall-mounted Surface Pro 3 in the kitchen) dies or must be r
 
 1. **Given** a freshly installed target device and a checkout of this repository, **When** the operator runs the single documented provisioning command with the documented inputs, **Then** the device is configured into the kiosk runtime without further manual steps.
 2. **Given** the device has been provisioned, **When** it is power-cycled (cold boot) with no human present, **Then** it boots unattended and displays the full-screen dashboard at the panel's native resolution (2160×1440) with no login screen, desktop, or dialog blocking the view.
-3. **Given** two separate clean devices are each provisioned from the same repository revision with the same inputs, **When** both are booted, **Then** they exhibit the same kiosk behavior (same resolution, same auto-launch, same network membership).
+3. **Given** a clean device is provisioned from a given repository revision (and, optionally, a VM/spare provisioned from the same revision), **When** the device is re-provisioned with the same inputs (idempotent) or the spare is booted, **Then** the resulting kiosk state is identical (same resolution, same auto-launch, same network membership) — reproducibility demonstrated by deterministic, idempotent re-provision rather than a required two-physical-device test (fleet validation is out of scope).
 
 ---
 
@@ -94,7 +94,7 @@ When an operator needs to debug the device or temporarily take it out of kiosk m
 - **FR-002**: The repository MUST provide a single documented command to provision a fresh, freshly-installed target device into the kiosk runtime.
 - **FR-003**: Provisioning MUST require only the single documented command plus its documented inputs (e.g. the WiFi secret); it MUST NOT require undocumented manual steps.
 - **FR-004**: Provisioning MUST be idempotent: re-running it on an already-provisioned device MUST converge to the same working kiosk state rather than corrupting it.
-- **FR-005**: All components of the runtime that affect behavior MUST be pinned or documented to a degree that a rebuild from the same repository revision yields the same kiosk behavior.
+- **FR-005**: All components of the runtime that affect behavior MUST be pinned or documented to a degree that a rebuild from the same repository revision yields the same kiosk behavior. NOTE: `google-chrome-stable` is pinned at **channel** granularity (Google's apt repo serves only the latest stable build); the validated build is recorded in research.md §D2 and in-browser auto-update is suppressed, so channel-level pinning is the accepted reproducibility granularity for the browser.
 - **FR-006**: The repository MUST document the target device/OS assumptions the provisioning relies on (so an operator knows what a valid target looks like).
 
 #### Unattended boot and display
@@ -140,11 +140,11 @@ When an operator needs to debug the device or temporarily take it out of kiosk m
 
 - **SC-001**: An operator can take a fresh target device and reach a working unattended kiosk using only the repository's documented one-command provisioning plus its documented inputs — with zero steps that exist only on the old device or in someone's memory.
 - **SC-002**: After a cold (power-off) boot with no human present, the device reaches the full-screen dashboard at 2160×1440 with no login, desktop, or blocking dialog visible.
-- **SC-003**: After a simulated browser crash and, separately, a simulated session failure, the full-screen dashboard returns automatically within a short bounded time (well under a minute) with no human interaction, in 100% of trials.
+- **SC-003**: After a simulated browser crash and, separately, a simulated session failure, the full-screen dashboard returns automatically within a short bounded time — target ~2 s (launcher `sleep 2` relaunch and unit `RestartSec=2`), well under a minute — with no human interaction, in 100% of trials.
 - **SC-004**: On a headless boot, the device joins the main trusted WLAN and loads the dashboard successfully, and never auto-joins the isolated IoT network — verified across repeated reboots.
-- **SC-005**: Over a continuous multi-hour idle period, the WiFi connection does not drop due to power-saving and the dashboard remains loaded.
+- **SC-005**: WiFi power-saving is disabled so the connection does not drop while idle and the dashboard remains loaded. Verified primarily by asserting the disabled power-save setting (`802-11-wireless.powersave=2`); a continuous multi-hour idle soak is an optional confirming observation, not a required CI/acceptance gate.
 - **SC-006**: An operator can run the documented rollback to return the device to a normal desktop and then re-provision back to kiosk mode, following only the repository documentation.
-- **SC-007**: Two clean devices provisioned from the same repository revision with the same inputs exhibit the same kiosk behavior (resolution, auto-launch, network membership), demonstrating reproducibility.
+- **SC-007**: Reproducibility is demonstrated by determinism rather than a two-physical-device test (fleet is out of scope): the runtime is pinned/documented (see FR-005) and an idempotent re-provision of the same repository revision converges to identical kiosk state (resolution, auto-launch, network membership). Re-validating on a VM/spare from the same revision is an optional confirming check.
 
 ## Assumptions
 

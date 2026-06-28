@@ -46,9 +46,12 @@ never in the repo.
 
 **Testing**: `shellcheck` lint on all scripts (CI-runnable); pure helper
 logic (arg/env parsing, idempotency guards) unit-testable with `bats` and
-mocked commands. End-to-end acceptance is the on-device cold-boot test
-(already proven) documented in [quickstart.md](quickstart.md). See
-Constitution Check + Complexity Tracking for the coverage deviation.
+mocked commands. Both tools are obtained as CI/system tools (`apt-get install
+shellcheck bats`, or a dedicated CI action) and run via a repo `package.json`
+script (`test:kiosk`) so the gate is enforceable in CI — see tasks T006/T008.
+End-to-end acceptance is the on-device cold-boot test (already proven)
+documented in [quickstart.md](quickstart.md). See Constitution Check +
+Complexity Tracking for the coverage deviation.
 
 **Target Platform**: Surface Pro 3, Ubuntu 24.04.4 LTS, x86_64, native panel
 2160×1440 (3:2). Dedicated local user `kiosk` (uid 1001, `/home/kiosk`).
@@ -150,11 +153,12 @@ deploy/kiosk/setup-kiosk.sh          # old setup
 deploy/kiosk/start-kiosk.sh          # old start
 ```
 
-> NOTE: the current `005-kiosk-runtime` branch was cut from a merge-base
-> *before* `deploy/kiosk/` existed, so the old files are not in this branch's
-> working tree but DO ship on `main`. A plain merge would keep them.
-> Implementation MUST explicitly delete the five old files (and commit the
-> deletion) so the new tree fully replaces the old one.
+> NOTE: after rebasing `005-kiosk-runtime` onto `origin/main`, the five old
+> GNOME/snap files ARE present in this branch's working tree (verified via
+> `git ls-files deploy/kiosk/`). The working tree is NOT yet clean.
+> Implementation MUST explicitly `git rm` the five old files (task T004) and
+> commit the deletion so the new tree fully replaces the old one. Do not skip
+> T004 on the assumption the tree is already clean.
 
 **Structure Decision**: One self-contained provisioning directory
 (`deploy/kiosk/`). `provision.sh` is the only entry point; SRP-focused steps

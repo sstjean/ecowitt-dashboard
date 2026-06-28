@@ -36,7 +36,7 @@ required field is empty. It MUST NOT echo `KIOSK_WIFI_PSK`.
 | uid | `KIOSK_UID` (`1001`) | |
 | home | `/home/KIOSK_USER` (`/home/kiosk`) | owns the Chrome profile dir |
 | shell | default login shell | |
-| groups | as needed for video/seat (logind grants seat) | no sudo |
+| groups | none beyond the user's default group — logind grants the seat; no `video`/`render`/`seat` membership needed for cage on this device | no sudo |
 
 State: **absent → present**. Re-running on an existing user is a no-op.
 
@@ -84,8 +84,9 @@ rollback.
 | `KIOSK_URL` | `http://192.168.10.5:8090/` | page opened in `--kiosk` |
 | `KIOSK_DEBUG` | `0` | `1` adds `--remote-debugging-port=9222 --remote-allow-origins=*` |
 
-Fixed Chrome flag set is defined in [research.md](research.md) §D7 and the
-[launcher contract](contracts/kiosk-launcher.md).
+Fixed Chrome flag set is **authoritatively** defined in the
+[launcher contract](contracts/kiosk-launcher.md); [research.md](research.md)
+§D7 explains the rationale. This table does not restate the flags.
 
 ---
 
@@ -120,13 +121,13 @@ IoT→autoconnect=no. Re-running converges to the same values (idempotent).
 
 | Element | Provisioned state | Rolled-back state |
 |---------|-------------------|-------------------|
-| `/etc/systemd/system/display-manager.service` symlink | **removed** (cage owns tty1) | gdm re-linked (gdm active) |
+| `/etc/systemd/system/display-manager.service` symlink | **removed** — NOT masked (cage owns tty1) | re-linked to `gdm3.service` (gdm3 active) |
 | `kiosk.service` | enabled (`graphical.target.wants`) | disabled |
-| default target | `graphical.target` | `graphical.target` (gdm) |
-| gdm | masked-by-omission / stopped | enabled + started |
+| default target | `graphical.target` | `graphical.target` (gdm3) |
+| gdm3 | inactive because its display-manager symlink is removed (not masked) | enabled + started |
 
 Break-glass (device won't boot): GRUB recovery mode → disable
-`kiosk.service` / re-enable gdm.
+`kiosk.service` / re-enable `gdm3`.
 
 ---
 
