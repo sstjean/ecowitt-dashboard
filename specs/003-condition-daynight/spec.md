@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-26
 
-**Status**: Draft
+**Status**: Done (shipped via PR #21, commit `7a72719`; deployed to prod 2026-06-26)
 
 **Source of Truth**: GitHub Feature issue [#19](https://github.com/sstjean/ecowitt-dashboard/issues/19) and its User Story sub-issue [#20](https://github.com/sstjean/ecowitt-dashboard/issues/20) (repo `sstjean/ecowitt-dashboard`). This `spec.md` is a derived implementation tool. **If this document ever disagrees with #19 or #20, the issues win.**
 
