@@ -45,3 +45,15 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck bats
       - name: Lint scripts and run bats helper suite
         run: npm run test:kiosk
+
+  watchdog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck + bats + coverage
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck bats
+          python3 -m pip install --user coverage
+      - name: Lint + bats + python unittest @ 100% coverage
+        run: npm run test:watchdog
+
