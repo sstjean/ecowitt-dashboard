@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the Ecowitt watchdog periodically
+
+[Timer]
+OnBootSec=60s
+# A .timer cannot read EnvironmentFile, so WATCHDOG_INTERVAL_SECONDS is
+# substituted into this placeholder by provision.sh at install time.
+OnUnitActiveSec=__WATCHDOG_INTERVAL_SECONDS__s
+AccuracySec=5s
+Persistent=true
+Unit=ecowitt-watchdog.service
+
+[Install]
+WantedBy=timers.target

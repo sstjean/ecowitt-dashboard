@@ -1,0 +1,11 @@
+[Unit]
+Description=Ecowitt dashboard container watchdog (self-healing)
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/ecowitt-watchdog/watchdog.env
+ExecStart=/usr/local/bin/ecowitt-watchdog-run
+# All stdout/stderr (every verdict + action, with reason + timestamp) lands in
+# the journal: journalctl -u ecowitt-watchdog.service (FR-010, SC-007).

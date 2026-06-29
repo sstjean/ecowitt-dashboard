@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# deploy/watchdog/bin/ecowitt-watchdog-run
+# Orchestrator — invoked once per firing by ecowitt-watchdog.service (oneshot).
+# Evaluates each managed service's logical health INDEPENDENTLY and, on an
+# unhealthy verdict, asks the action gate to recover it. Every verdict + action
+# is logged to the journal with a reason + timestamp (FR-010, SC-007).
+#
+# Self-healing contract:
+#   * healthy   → reset that service's counters (FR-009); no action.
+#   * unknown   → log reason; NEVER restart (FR-014).
+#   * unhealthy → hand to the action gate (cooldown/cap honoured in US3).
+# A fault evaluating one service never aborts the run or affects another
+# (FR-005/FR-014/FR-015).
+set -euo pipefail
+
+# --- Locate the lib dir (repo-dev vs installed vs test override) -------------
+_find_lib_dir() {
+  if [[ -n "${WATCHDOG_LIB_DIR:-}" ]]; then
+    printf '%s' "$WATCHDOG_LIB_DIR"
+    return 0
+  fi
+  local here="$1"
+  if [[ -f "$here/../lib/common.sh" ]]; then            # repo-dev: bin/ + lib/ siblings
+    ( cd "$here/../lib" && pwd )
+  elif [[ -f "/usr/local/lib/ecowitt-watchdog/lib/common.sh" ]]; then
+    printf '%s' "/usr/local/lib/ecowitt-watchdog/lib"   # installed
+  else
+    printf '%s' "$here/lib"
+  fi
+}
+
+_HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WATCHDOG_LIB_DIR="$(_find_lib_dir "$_HERE")"
+export WATCHDOG_LIB_DIR
+
+# shellcheck source=lib/common.sh
+source "$WATCHDOG_LIB_DIR/common.sh"
+# shellcheck source=lib/config.sh
+source "$WATCHDOG_LIB_DIR/config.sh"
+# shellcheck source=lib/state.sh
+source "$WATCHDOG_LIB_DIR/state.sh"
+# shellcheck source=lib/health.sh
+source "$WATCHDOG_LIB_DIR/health.sh"
+# shellcheck source=lib/actions.sh
+source "$WATCHDOG_LIB_DIR/actions.sh"
+
+watchdog_load_config
+
+# Managed services (backup excluded by design). Evaluated independently.
+WATCHDOG_SERVICES="${WATCHDOG_SERVICES:-poller api web}"
+
+# _evaluate <service> — print "<verdict>\t<reason>", never failing. A health
+# fault is mapped to "unknown / eval_error" so the loop stays isolated.
+_evaluate() {
+  local svc="$1" line
+  if ! line="$(watchdog_health_verdict "$svc" 2>/dev/null)" || [[ -z "$line" ]]; then
+    printf 'unknown\teval_error'
+    return 0
+  fi
+  printf '%s' "$line"
+}
+
+main() {
+  local svc line verdict reason
+  for svc in $WATCHDOG_SERVICES; do
+    line="$(_evaluate "$svc")"
+    verdict="${line%%$'\t'*}"
+    reason="${line#*$'\t'}"
+    log "$svc: $verdict ($reason)"
+    case "$verdict" in
+      healthy)
+        watchdog_state_reset "$svc" || warn "$svc: state reset failed"
+        ;;
+      unhealthy)
+        watchdog_act "$svc" "$reason" || warn "$svc: action failed"
+        ;;
+      *)  # unknown (or anything unexpected) → never restart (FR-014)
+        ;;
+    esac
+  done
+}
+
+main "$@"
