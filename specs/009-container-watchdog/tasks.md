@@ -194,9 +194,9 @@ also removes state/config.
 
 - [x] T035 Run the full [deploy/watchdog/run-checks.sh](../../deploy/watchdog/run-checks.sh) green: `shellcheck -x` (all shell) + `bats tests/` (all 4 suites) + `python3 -m unittest discover tests` — the deploy-tree constitution CI gate
 - [x] T036 [P] Confirm `coverage.py` shows **100%** of `bin/freshness.py` and `bin/state.py` branches (Constitution Principle IV); add any missing-branch tests to `tests/test_freshness.py` / `tests/test_state.py`
-- [ ] T037 Validate quickstart [§1–§3](./quickstart.md) and success criteria SC-001..SC-007 — unit proofs (fresh/stale/empty/missing/locked, cooldown, cap, reset, K-streak, independence) + idempotent provision/clean rollback
-- [ ] T038 Live wedge-recovery validation on `homeautomation` (192.168.10.5), quickstart [§4–§5](./quickstart.md): `docker pause ecowitt-dashboard-poller-1` → self-heal within ≈ threshold + one interval (SC-001/002); `docker pause` api then web → restart after K checks (SC-003); confirm every verdict + restart in `journalctl -u ecowitt-watchdog.service` (SC-007)
-- [ ] T039 [P] Final [deploy/watchdog/README.md](../../deploy/watchdog/README.md) pass: tuning table, journal verification, and the live wedge-recovery runbook
+- [x] T037 Validate quickstart [§1–§3](./quickstart.md) and success criteria SC-001..SC-007 — unit proofs (fresh/stale/empty/missing/locked, cooldown, cap, reset, K-streak, independence) + idempotent provision/clean rollback
+- [x] T038 Live wedge-recovery validation on `homeautomation` (192.168.10.5), quickstart [§4–§5](./quickstart.md): `docker pause ecowitt-dashboard-poller-1` → self-heal within ≈ threshold + one interval (SC-001/002); `docker pause` api then web → restart after K checks (SC-003); confirm every verdict + restart in `journalctl -u ecowitt-watchdog.service` (SC-007)
+- [x] T039 [P] Final [deploy/watchdog/README.md](../../deploy/watchdog/README.md) pass: tuning table, journal verification, and the live wedge-recovery runbook
 
 ---
 

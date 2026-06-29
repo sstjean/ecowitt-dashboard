@@ -83,6 +83,28 @@ Each pass logs one line per service with a verdict (`healthy` / `unhealthy` /
 `unknown`) and reason. Restarts, cooldown suppressions, and cap back-offs
 (`ALERT:`) are all logged to the journal.
 
+## Simulate a wedge (validation)
+
+`docker pause` reproduces the exact "logically stalled but `Up`" condition
+Docker's own `restart:` policy can't catch — the process is frozen while the
+container still reports `Up`. To prove self-healing end-to-end:
+
+```bash
+# Poller: freeze it so readings go stale while the container stays "Up".
+docker pause ecowitt-dashboard-poller-1
+# Within POLLER_MAX_AGE_SECONDS + one interval the watchdog logs
+#   poller: unhealthy (stale ...) -> restarting ... -> restart succeeded
+journalctl -u ecowitt-watchdog.service -f
+# (lower WATCHDOG_POLLER_MAX_AGE_SECONDS temporarily for a faster test)
+
+# api/web: pause then watch the K-consecutive-failure streak climb to the
+# threshold before the single targeted container is restarted.
+docker pause ecowitt-dashboard-api-1     # streak 1/3 -> 2/3 -> 3/3 -> restart
+```
+
+If a test leaves a container paused, `docker unpause <name>` restores it (the
+watchdog's `docker restart` already unpauses on recovery).
+
 ## Uninstall
 
 ```bash
