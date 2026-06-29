@@ -4,6 +4,12 @@ description: "Dependency-ordered, TDD task list for 003-condition-daynight"
 
 # Tasks: Sky-condition day/night decoupled from the deprecated NWS icon
 
+> **Status: DONE.** All tasks below were completed and shipped via **PR #21**
+> (commit `7a72719`, merged to `main` 2026-06-26) and deployed to production
+> the same day. The unchecked boxes are retained as the historical task plan;
+> the implementation is verified live (`apps/api` 64 tests green; prod
+> `/api/v1/latest` returns a correct astro-derived day/night condition icon).
+
 **Input**: Design documents from `/specs/003-condition-daynight/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md,
