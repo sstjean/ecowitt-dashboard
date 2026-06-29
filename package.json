@@ -15,7 +15,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
-    "test:kiosk": "bash deploy/kiosk/run-checks.sh"
+    "test:kiosk": "bash deploy/kiosk/run-checks.sh",
+    "test:watchdog": "bash deploy/watchdog/run-checks.sh"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

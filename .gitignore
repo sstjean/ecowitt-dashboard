@@ -44,3 +44,12 @@ Thumbs.db
 
 # Local native-run SQLite data
 .local/
+
+# Watchdog (009) local overrides — never commit
+deploy/watchdog/.env
+
+# Python coverage / cache artifacts (watchdog test gate)
+.coverage
+.coverage.*
+__pycache__/
+*.pyc
