@@ -373,26 +373,29 @@ body {
 }
 
 /* ---------- Rainfall ---------- */
-.rain-now {
-  display: inline-flex;
+.rain-now-banner {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  margin-left: 8px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 10px;
+  margin: 6px 0 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--cp-link);
+  background: color-mix(in srgb, var(--cp-link) 16%, transparent);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--cp-link);
-  vertical-align: middle;
 }
-.rain-now[hidden] {
+.rain-now-banner[hidden] {
   display: none;
 }
-.rain-now .dot {
-  width: 7px;
-  height: 7px;
+.rain-now-banner .dot {
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--cp-link);
+  flex: none;
   animation: rainpulse 1.4s ease-in-out infinite;
 }
 @keyframes rainpulse {

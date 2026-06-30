@@ -114,6 +114,20 @@ describe("renderRainfall", () => {
     expect(container.querySelector("[data-rain-now]")?.hasAttribute("hidden")).toBe(true);
   });
 
+  it("renders 'Raining now' as a full-width banner, not an inline heading pill (parity with the fault banner)", () => {
+    renderRainfall(container, rain({ isRaining: true }));
+    const banner = container.querySelector<HTMLElement>("[data-rain-now]")!;
+    // It is a block-level banner sibling of the card body, not nested in the <h3>.
+    expect(banner.closest("h3")).toBeNull();
+    expect(banner.classList.contains("rain-now-banner")).toBe(true);
+    expect(banner.getAttribute("role")).toBe("status");
+    expect(banner.textContent).toContain("Raining now");
+    // The pulsing dot is preserved and hidden from assistive tech.
+    const dot = banner.querySelector(".dot");
+    expect(dot).not.toBeNull();
+    expect(dot?.getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("exposes the agreed full-scale cap", () => {
     expect(RAIN_FULL_SCALE_IN).toBe(4);
   });

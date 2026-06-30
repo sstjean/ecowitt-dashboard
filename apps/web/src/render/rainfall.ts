@@ -83,18 +83,18 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
 
   const badge = el(
     doc,
-    "span",
-    { class: "rain-now", "data-rain-now": "" },
-    el(doc, "span", { class: "dot" }),
-    "Raining now",
+    "div",
+    { class: "rain-now-banner", "data-rain-now": "", role: "status" },
+    el(doc, "span", { class: "dot", "aria-hidden": "true" }),
+    el(doc, "span", { class: "rain-now-text" }, "Raining now"),
   );
   // A suspected gauge fault can't be trusted to be "raining now" either, so the
-  // badge is suppressed whenever the gauge is dry OR suspect.
+  // banner is suppressed whenever the gauge is dry OR suspect.
   if (!data.isRaining || data.rainSensorSuspect) {
     badge.setAttribute("hidden", "");
   }
 
-  const heading = el(doc, "h3", { class: "inline" }, "Rainfall ", badge);
+  const heading = el(doc, "h3", { class: "inline" }, "Rainfall");
 
   // A distinct, kiosk-legible warning (Feature 004), announced to assistive tech,
   // shown only when the gauge is suspected of not measuring (FR-009). It carries
@@ -192,9 +192,6 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
 
   const body = el(doc, "div", { class: "rain-body" }, droplet, main, grid);
 
-  if (fault) {
-    container.replaceChildren(heading, fault, body);
-  } else {
-    container.replaceChildren(heading, body);
-  }
+  const banners = fault ? [heading, fault, badge, body] : [heading, badge, body];
+  container.replaceChildren(...banners);
 }

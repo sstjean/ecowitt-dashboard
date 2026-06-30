@@ -187,6 +187,7 @@ confirm the rainfall card renders a distinct fault indicator plus the reason; se
 - **FR-009**: Web MUST render a distinct "sensor may not be reporting" indicator on the rainfall card when `rainSensorSuspect = true`, including the suspect reason, visually distinct from the normal dry-0.00 presentation.
 - **FR-010**: Web MUST show the normal dry state with no fault indicator when `rainSensorSuspect = false` and rain is 0.00.
 - **FR-011**: The fault indicator MUST be legible at kiosk distance per Feature 004 legibility conventions, and any timestamps it displays MUST be rendered in America/New_York (Eastern) time.
+- **FR-011a**: For visual parity with the fault indicator, the existing "Raining now" cue MUST render as a full-width banner on the rainfall card (not an inline heading pill), shown only when the gauge reports active rain and never while a fault is suspected.
 - **FR-012**: Detection MUST rely only on the local WS90 sensor array; no NWS/airport precipitation cross-check is permitted.
 - **FR-013**: Detection MUST degrade gracefully when the rolling window has gaps or missing channels (no exceptions, no spurious faults).
 
