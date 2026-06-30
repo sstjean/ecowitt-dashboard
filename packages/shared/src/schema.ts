@@ -147,9 +147,24 @@ export const latestSnapshotSchema = z.strictObject({
   conditionStale: z.boolean(),
   /** The verbatim NWS sky-condition label (e.g. "Partly Sunny"); null until first fetch. */
   conditionText: z.union([z.string(), z.null()]),
+  /** Rain-gauge fault heuristic (Feature 008): true ⇒ storm signature with a dead piezo. */
+  rainSensorSuspect: z.boolean(),
+  /** Human-readable summary of the fired proxies when suspect; null otherwise. */
+  rainSensorReason: z.union([z.string(), z.null()]),
   serverTime: isoUtc(),
 });
 export type LatestSnapshot = z.infer<typeof latestSnapshotSchema>;
+
+/**
+ * RainFaultState — the rain-fault detector's transient result (Feature 008),
+ * merged onto the `/api/v1/latest` envelope. Single source of this type: the
+ * detector (`apps/api/src/rainFault.ts`) imports it from here and never
+ * re-declares it.
+ */
+export type RainFaultState = {
+  rainSensorSuspect: boolean;
+  rainSensorReason: string | null;
+};
 
 /** Health — liveness/readiness probe. */
 export const healthSchema = z.strictObject({

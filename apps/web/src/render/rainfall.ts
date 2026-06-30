@@ -48,6 +48,10 @@ export interface RainData {
   rainMonthlyIn: number;
   rainYearlyIn: number;
   isRaining: boolean;
+  /** True when the gauge is suspected of not measuring during a storm signature. */
+  rainSensorSuspect: boolean;
+  /** Human-readable reason for the suspected fault, or null when not suspect. */
+  rainSensorReason: string | null;
 }
 
 function totalRow(
@@ -79,16 +83,42 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
 
   const badge = el(
     doc,
-    "span",
-    { class: "rain-now", "data-rain-now": "" },
-    el(doc, "span", { class: "dot" }),
-    "Raining now",
+    "div",
+    { class: "rain-now-banner", "data-rain-now": "", role: "status" },
+    el(doc, "span", { class: "dot", "aria-hidden": "true" }),
+    el(doc, "span", { class: "rain-now-text" }, "Raining now"),
   );
-  if (!data.isRaining) {
+  // A suspected gauge fault can't be trusted to be "raining now" either, so the
+  // banner is suppressed whenever the gauge is dry OR suspect.
+  if (!data.isRaining || data.rainSensorSuspect) {
     badge.setAttribute("hidden", "");
   }
 
-  const heading = el(doc, "h3", { class: "inline" }, "Rainfall ", badge);
+  const heading = el(doc, "h3", { class: "inline" }, "Rainfall");
+
+  // A distinct, kiosk-legible warning (Feature 004), announced to assistive tech,
+  // shown only when the gauge is suspected of not measuring (FR-009). It carries
+  // no timestamp, so the Eastern-time rule (FR-011) is satisfied by construction.
+  const fault = data.rainSensorSuspect
+    ? el(
+        doc,
+        "div",
+        { class: "rain-fault", "data-rain-fault": "", role: "status" },
+        el(doc, "span", { class: "rain-fault-icon", "aria-hidden": "true" }, "⚠"),
+        el(
+          doc,
+          "div",
+          { class: "rain-fault-text" },
+          el(doc, "span", { class: "rain-fault-title" }, "Sensor may not be reporting"),
+          el(
+            doc,
+            "span",
+            { class: "rain-fault-reason", "data-rain-fault-reason": "" },
+            data.rainSensorReason ?? "",
+          ),
+        ),
+      )
+    : null;
 
   const droplet = el(
     doc,
@@ -162,5 +192,6 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
 
   const body = el(doc, "div", { class: "rain-body" }, droplet, main, grid);
 
-  container.replaceChildren(heading, body);
+  const banners = fault ? [heading, fault, badge, body] : [heading, badge, body];
+  container.replaceChildren(...banners);
 }

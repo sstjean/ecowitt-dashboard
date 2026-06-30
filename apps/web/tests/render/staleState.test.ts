@@ -69,6 +69,8 @@ function snap(serverTime: string): LatestSnapshot {
     conditionIcon: "clear",
     conditionStale: false,
     conditionText: "Sunny",
+    rainSensorSuspect: false,
+    rainSensorReason: null,
   };
 }
 

@@ -373,26 +373,29 @@ body {
 }
 
 /* ---------- Rainfall ---------- */
-.rain-now {
-  display: inline-flex;
+.rain-now-banner {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  margin-left: 8px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 8px;
+  margin: 4px 0 8px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--cp-link);
+  background: color-mix(in srgb, var(--cp-link) 16%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--cp-link);
-  vertical-align: middle;
 }
-.rain-now[hidden] {
+.rain-now-banner[hidden] {
   display: none;
 }
-.rain-now .dot {
-  width: 7px;
-  height: 7px;
+.rain-now-banner .dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--cp-link);
+  flex: none;
   animation: rainpulse 1.4s ease-in-out infinite;
 }
 @keyframes rainpulse {
@@ -406,6 +409,37 @@ body {
     transform: scale(1.15);
   }
 }
+.rain-fault {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--cp-warning);
+  background: color-mix(in srgb, var(--cp-warning) 16%, transparent);
+}
+.rain-fault-icon {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--cp-warning);
+}
+.rain-fault-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rain-fault-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--cp-warning);
+}
+.rain-fault-reason {
+  font-size: 12px;
+  color: var(--cp-text);
+}
 .rain-body {
   flex: 1;
   min-height: 0;
@@ -416,10 +450,16 @@ body {
 }
 .drop-wrap {
   width: clamp(74px, 9vw, 112px);
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
 }
 .drop-svg {
   width: 100%;
   height: auto;
+  max-height: 100%;
   display: block;
 }
 .rain-main {

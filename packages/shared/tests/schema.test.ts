@@ -8,6 +8,7 @@ import {
   astronomicalDataSchema,
   barometricTrendSchema,
 } from "../src/schema.ts";
+import type { RainFaultState } from "../src/schema.ts";
 
 function validSnapshot() {
   return {
@@ -150,6 +151,8 @@ describe("latestSnapshotSchema", () => {
       conditionIcon: "clear",
       conditionStale: false,
       conditionText: "Sunny",
+      rainSensorSuspect: false,
+      rainSensorReason: null,
     };
     expect(latestSnapshotSchema.parse(env)).toEqual(env);
   });
@@ -170,6 +173,8 @@ describe("latestSnapshotSchema", () => {
       conditionIcon: null,
       conditionStale: true,
       conditionText: null,
+      rainSensorSuspect: false,
+      rainSensorReason: null,
     };
     expect(latestSnapshotSchema.parse(env)).toEqual(env);
   });
@@ -178,6 +183,58 @@ describe("latestSnapshotSchema", () => {
     expect(() =>
       latestSnapshotSchema.parse({ status: "weird" }),
     ).toThrow();
+  });
+});
+
+describe("latestSnapshotSchema rain-fault fields", () => {
+  function baseEnvelope() {
+    return {
+      status: "ok" as const,
+      observedAt: "2026-06-21T18:05:00Z",
+      serverTime: "2026-06-21T18:05:07Z",
+      reading: validSnapshot(),
+      astro: {
+        sunriseUtc: "2026-06-21T09:25:00Z",
+        sunsetUtc: "2026-06-22T00:31:00Z",
+        sunAltitudeFraction: 0.58,
+        moonPhase: 0.21,
+      },
+      baroTrend: { direction: "rising" as const, deltaHpa: 1.4, etaMinutes: null },
+      conditionIcon: "clear" as const,
+      conditionStale: false,
+      conditionText: "Sunny",
+    };
+  }
+
+  it("accepts a suspect envelope with a reason string", () => {
+    const env = {
+      ...baseEnvelope(),
+      rainSensorSuspect: true,
+      rainSensorReason: "temp crash, humidity surge, gust spike, pressure dip",
+    };
+    expect(latestSnapshotSchema.parse(env)).toEqual(env);
+  });
+
+  it("accepts a not-suspect envelope with a null reason", () => {
+    const env = { ...baseEnvelope(), rainSensorSuspect: false, rainSensorReason: null };
+    expect(latestSnapshotSchema.parse(env)).toEqual(env);
+  });
+
+  it("rejects an envelope missing rainSensorSuspect", () => {
+    const env = { ...baseEnvelope(), rainSensorReason: null };
+    expect(() => latestSnapshotSchema.parse(env)).toThrow();
+  });
+
+  it("rejects an envelope missing rainSensorReason", () => {
+    const env = { ...baseEnvelope(), rainSensorSuspect: false };
+    expect(() => latestSnapshotSchema.parse(env)).toThrow();
+  });
+
+  it("exports a RainFaultState shaped { rainSensorSuspect, rainSensorReason }", () => {
+    const state: RainFaultState = { rainSensorSuspect: true, rainSensorReason: "x" };
+    const cleared: RainFaultState = { rainSensorSuspect: false, rainSensorReason: null };
+    expect(state.rainSensorSuspect).toBe(true);
+    expect(cleared.rainSensorReason).toBeNull();
   });
 });
 

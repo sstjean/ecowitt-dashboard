@@ -70,6 +70,8 @@ function okSnap(r: LiveReadingSnapshot = reading()): LatestSnapshot {
     conditionIcon: "clear",
     conditionStale: false,
     conditionText: "Sunny",
+    rainSensorSuspect: false,
+    rainSensorReason: null,
   };
 }
 
@@ -84,6 +86,8 @@ function noDataSnap(): LatestSnapshot {
     conditionIcon: null,
     conditionStale: true,
     conditionText: null,
+    rainSensorSuspect: false,
+    rainSensorReason: null,
   };
 }
 
@@ -113,6 +117,24 @@ describe("renderSnapshot", () => {
     expect(root.querySelector("[data-ring='outdoor']")?.textContent).toContain("—");
     expect(root.querySelector("[data-ring='feels']")?.textContent).toContain("—");
     expect(root.querySelector("[data-ring='outdoor'] .ring.missing")).not.toBeNull();
+  });
+
+  it("plumbs the envelope's rainSensorSuspect/rainSensorReason into the rainfall card (SC-006)", () => {
+    const reason = "Storm signature with no rain measured (gust spike, pressure dip)";
+    const snap = okSnap(reading({ rainDailyIn: 0, rainRateInHr: 0, isRaining: false }));
+    snap.rainSensorSuspect = true;
+    snap.rainSensorReason = reason;
+    renderSnapshot(snap, root);
+    const fault = root.querySelector("[data-panel='rain'] [data-rain-fault]");
+    expect(fault).not.toBeNull();
+    expect(
+      root.querySelector("[data-panel='rain'] [data-rain-fault-reason]")?.textContent,
+    ).toBe(reason);
+  });
+
+  it("shows no fault indicator on the rainfall card when the envelope is not suspect", () => {
+    renderSnapshot(okSnap(reading({ rainDailyIn: 0, isRaining: false })), root);
+    expect(root.querySelector("[data-panel='rain'] [data-rain-fault]")).toBeNull();
   });
 });
 

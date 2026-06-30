@@ -68,6 +68,8 @@ function noDataSnap(): LatestSnapshot {
     conditionIcon: null,
     conditionStale: true,
     conditionText: null,
+    rainSensorSuspect: false,
+    rainSensorReason: null,
   };
 }
 
@@ -83,6 +85,8 @@ function okSnap(): LatestSnapshot {
     conditionIcon: "clear",
     conditionStale: false,
     conditionText: "Sunny",
+    rainSensorSuspect: false,
+    rainSensorReason: null,
   };
 }
 

@@ -32,6 +32,8 @@ function noDataSnap(): LatestSnapshot {
     conditionIcon: null,
     conditionStale: true,
     conditionText: null,
+    rainSensorSuspect: false,
+    rainSensorReason: null,
   };
 }
 
