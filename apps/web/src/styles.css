@@ -406,6 +406,37 @@ body {
     transform: scale(1.15);
   }
 }
+.rain-fault {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--cp-warning);
+  background: color-mix(in srgb, var(--cp-warning) 16%, transparent);
+}
+.rain-fault-icon {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--cp-warning);
+}
+.rain-fault-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rain-fault-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--cp-warning);
+}
+.rain-fault-reason {
+  font-size: 12px;
+  color: var(--cp-text);
+}
 .rain-body {
   flex: 1;
   min-height: 0;

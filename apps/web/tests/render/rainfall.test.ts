@@ -20,6 +20,8 @@ interface RainData {
   rainMonthlyIn: number;
   rainYearlyIn: number;
   isRaining: boolean;
+  rainSensorSuspect: boolean;
+  rainSensorReason: string | null;
 }
 
 function rain(overrides: Partial<RainData> = {}): RainData {
@@ -32,6 +34,8 @@ function rain(overrides: Partial<RainData> = {}): RainData {
     rainMonthlyIn: 3.4,
     rainYearlyIn: 28.6,
     isRaining: true,
+    rainSensorSuspect: false,
+    rainSensorReason: null,
     ...overrides,
   };
 }
@@ -112,5 +116,59 @@ describe("renderRainfall", () => {
 
   it("exposes the agreed full-scale cap", () => {
     expect(RAIN_FULL_SCALE_IN).toBe(4);
+  });
+});
+
+describe("renderRainfall — rain-sensor fault indicator (US3)", () => {
+  const REASON =
+    "Storm signature with no rain measured (temperature crash, humidity surge, gust spike, pressure dip)";
+
+  it("shows a distinct fault indicator + reason when rainSensorSuspect is true (FR-009)", () => {
+    renderRainfall(
+      container,
+      rain({ rainDailyIn: 0, rainSensorSuspect: true, rainSensorReason: REASON }),
+    );
+    const fault = container.querySelector("[data-rain-fault]");
+    expect(fault).not.toBeNull();
+    // The suspect reason is surfaced verbatim.
+    expect(container.querySelector("[data-rain-fault-reason]")?.textContent).toBe(REASON);
+    // It is distinct from a normal dry presentation — the "raining now" badge is
+    // suppressed (the gauge can't be trusted) and the daily total still shows 0.00.
+    expect(container.querySelector("[data-rain-now]")?.hasAttribute("hidden")).toBe(true);
+    expect(container.querySelector("[data-rain-daily]")?.textContent).toBe("0.00");
+  });
+
+  it("shows the normal dry state with NO fault indicator when not suspect (FR-010)", () => {
+    renderRainfall(
+      container,
+      rain({ rainDailyIn: 0, isRaining: false, rainSensorSuspect: false, rainSensorReason: null }),
+    );
+    expect(container.querySelector("[data-rain-fault]")).toBeNull();
+    expect(container.querySelector("[data-rain-daily]")?.textContent).toBe("0.00");
+  });
+
+  it("is kiosk-legible and a11y-announced, and renders no naive UTC timestamp (FR-011)", () => {
+    renderRainfall(
+      container,
+      rain({ rainDailyIn: 0, rainSensorSuspect: true, rainSensorReason: REASON }),
+    );
+    const fault = container.querySelector<HTMLElement>("[data-rain-fault]")!;
+    // Feature 004 legibility: a dedicated, status-announced warning element.
+    expect(fault.classList.contains("rain-fault")).toBe(true);
+    expect(fault.getAttribute("role")).toBe("status");
+    // TZ rule: the indicator must never dump a raw UTC ISO timestamp (a 'Z' stamp).
+    expect(fault.textContent ?? "").not.toMatch(/\d{4}-\d{2}-\d{2}T[\d:.]+Z/);
+  });
+
+  it("renders the indicator with an empty reason if suspect arrives without a reason", () => {
+    // The envelope contract pairs suspect with a non-null reason, but the card
+    // defends against a malformed envelope by rendering an empty reason rather
+    // than crashing.
+    renderRainfall(
+      container,
+      rain({ rainDailyIn: 0, rainSensorSuspect: true, rainSensorReason: null }),
+    );
+    expect(container.querySelector("[data-rain-fault]")).not.toBeNull();
+    expect(container.querySelector("[data-rain-fault-reason]")?.textContent).toBe("");
   });
 });

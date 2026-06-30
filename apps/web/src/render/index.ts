@@ -35,7 +35,11 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
     if (metricsHost) {
       renderOutMetrics(metricsHost, reading);
     }
-    renderRainfall(rainHost, reading);
+    renderRainfall(rainHost, {
+      ...reading,
+      rainSensorSuspect: snapshot.rainSensorSuspect,
+      rainSensorReason: snapshot.rainSensorReason,
+    });
     renderSolarSky(solarHost, {
       solarWm2: reading.solarWm2,
       uvIndex: reading.uvIndex,
