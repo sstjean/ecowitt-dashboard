@@ -288,3 +288,61 @@ describe("buildLatestSnapshot condition resolution (read-time, astro-driven)", (
     expect(snap.conditionText).toBe("Mostly Cloudy");
   });
 });
+
+// A 90-min window ending at DAY_NOW (16:00Z = 12:00 EDT) that holds a calm
+// baseline for the first hour then ramps a full storm signature into the final
+// 30 minutes: temp crashes 80→68, humidity surges 60→78, gust 16, pressure dips
+// 1015→1013.7, solar collapses 700→175 (75%), piezo flat at 0 — all 5 proxies +
+// the gate, all within a single 30-min trend span.
+function seedStormWindow(): void {
+  const startMs = Date.parse("2026-06-21T14:30:00.000Z");
+  for (let i = 0; i <= 18; i += 1) {
+    const minutes = i * 5;
+    const g = Math.max(0, Math.min(1, (minutes - 60) / 30)); // ramp over the last 30 min
+    seed(new Date(startMs + minutes * 60_000).toISOString(), {
+      ...sampleMetrics(),
+      outdoorTempF: 80 - 12 * g,
+      outdoorHumidityPct: 60 + 18 * g,
+      gustMph: 2 + 14 * g,
+      pressureHpa: 1015 - 1.3 * g,
+      solarWm2: 700 - 525 * g,
+      rainRateInHr: 0,
+      rainEventIn: 0,
+    });
+  }
+}
+
+const READING_CONDITION: ConditionState = {
+  conditionText: "Mostly Cloudy",
+  conditionStale: false,
+  hasObservation: true,
+};
+
+describe("buildLatestSnapshot rain-fault wiring (US1)", () => {
+  it("carries a suspect verdict + reason from the 90-min storm window onto the ok envelope", () => {
+    seedStormWindow();
+    store = openReadStore(dbPath);
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, READING_CONDITION);
+    expect(snap.status).toBe("ok");
+    expect(snap.rainSensorSuspect).toBe(true);
+    expect(snap.rainSensorReason).toEqual(expect.any(String));
+    expect(snap.rainSensorReason).not.toBe("");
+  });
+
+  it("carries { false, null } on the ok envelope when the gauge is working (single calm reading)", () => {
+    seed("2026-06-21T15:55:00.000Z", sampleMetrics());
+    store = openReadStore(dbPath);
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, READING_CONDITION);
+    expect(snap.status).toBe("ok");
+    expect(snap.rainSensorSuspect).toBe(false);
+    expect(snap.rainSensorReason).toBeNull();
+  });
+
+  it("carries { false, null } on the no-data envelope (always present, strictObject)", () => {
+    store = openReadStore(dbPath); // empty
+    const snap = buildLatestSnapshot(store, config, DAY_NOW, READING_CONDITION);
+    expect(snap.status).toBe("no-data");
+    expect(snap.rainSensorSuspect).toBe(false);
+    expect(snap.rainSensorReason).toBeNull();
+  });
+});

@@ -9,9 +9,13 @@ import {
 import type { ReadStore } from "../../store.ts";
 import type { ApiConfig } from "../../config.ts";
 import { deriveDaily, deriveBaroTrend, computeAstro, localDayStartIso } from "../../enrich.ts";
-import { resolveConditionIcon, type ConditionState, type NwsClient } from "../../nws.ts";
+import { resolveConditionIcon, isDaytime, type ConditionState, type NwsClient } from "../../nws.ts";
+import { detectRainFault } from "../../rainFault.ts";
 
 const TIME_ZONE = "America/New_York";
+
+/** The rolling window the rain-fault detector reasons over (minutes). */
+const RAIN_FAULT_WINDOW_MIN = 90;
 
 const UNAVAILABLE_CONDITION: ConditionState = {
   conditionText: null,
@@ -73,6 +77,14 @@ export function buildLatestSnapshot(
     now,
   );
 
+  // Rain-gauge fault heuristic (Feature 008): assess the last 90 minutes for a
+  // storm signature concurring with a dead piezo. Local-only — no NWS cross-check.
+  const rainSince = new Date(
+    now.getTime() - RAIN_FAULT_WINDOW_MIN * 60 * 1000,
+  ).toISOString();
+  const isDay = isDaytime(now, astro.sunriseUtc, astro.sunsetUtc);
+  const rainFault = detectRainFault(store.getWindow(rainSince), now, isDay);
+
   const latest = store.getLatest();
   if (latest === null) {
     return latestSnapshotSchema.parse({
@@ -84,6 +96,8 @@ export function buildLatestSnapshot(
       conditionIcon,
       conditionStale,
       conditionText,
+      rainSensorSuspect: false,
+      rainSensorReason: null,
       serverTime,
     });
   }
@@ -102,6 +116,8 @@ export function buildLatestSnapshot(
     conditionIcon,
     conditionStale,
     conditionText,
+    rainSensorSuspect: rainFault.rainSensorSuspect,
+    rainSensorReason: rainFault.rainSensorReason,
     serverTime,
   });
 }
