@@ -372,7 +372,7 @@ describe("SENSOR_HEALTH_DEFAULTS", () => {
       capturedAtUtc: "2026-06-30T14:05:00Z",
       sensors: [entry],
     };
-    expect(health.sensors[0].id).toBe("A0");
+    expect(health.sensors[0]!.id).toBe("A0");
   });
 });
 

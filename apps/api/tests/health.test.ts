@@ -7,6 +7,7 @@ function fakeStore(overrides: Partial<ReadStore> = {}): ReadStore {
   return {
     getLatest: () => null,
     getWindow: () => [],
+    getSensorHealth: () => null,
     close: () => {},
     ...overrides,
   };
