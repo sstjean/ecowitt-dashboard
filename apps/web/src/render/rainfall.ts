@@ -70,6 +70,49 @@ function totalRow(
 }
 
 /**
+ * The pulsing "Raining now" cue. It lives inside the middle column directly
+ * above the Daily Rain value, so its only layout effect is to push Daily Rain +
+ * label down — it never grows the card or moves the droplet/totals.
+ */
+function buildRainingBanner(doc: Document): HTMLElement {
+  return el(
+    doc,
+    "div",
+    { class: "rain-now-banner", "data-rain-now": "", role: "status" },
+    el(doc, "span", { class: "dot", "aria-hidden": "true" }),
+    el(doc, "span", { class: "rain-now-text" }, "Raining now"),
+  );
+}
+
+/**
+ * The suspected-fault overlay. It is absolutely positioned to cover the whole
+ * card, centered on both axes, and dims the card content behind it. It carries
+ * no timestamp, so the Eastern-time / no-UTC rule (FR-011) is satisfied by
+ * construction. A `null`/missing reason renders an empty reason line rather
+ * than crashing.
+ */
+function buildFaultOverlay(doc: Document, reason: string): HTMLElement {
+  return el(
+    doc,
+    "div",
+    { class: "rain-fault-overlay", "data-rain-fault": "", role: "status" },
+    el(doc, "span", { class: "rain-fault-icon", "aria-hidden": "true" }, "⚠"),
+    el(
+      doc,
+      "div",
+      { class: "rain-fault-text" },
+      el(doc, "span", { class: "rain-fault-title" }, "Sensor may not be reporting"),
+      el(
+        doc,
+        "span",
+        { class: "rain-fault-reason", "data-rain-fault-reason": "" },
+        reason,
+      ),
+    ),
+  );
+}
+
+/**
  * Render the rainfall panel: a droplet that fills proportionally to the daily
  * total (full-scale {@link RAIN_FULL_SCALE_IN}, colour-escalating above the
  * cap), the six running totals (Daily most prominent), the rain rate, and a
@@ -81,13 +124,7 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
   const frac = dropFillFraction(data.rainDailyIn, RAIN_FULL_SCALE_IN);
   const height = (FILL_BOTTOM - FILL_TOP) * frac;
 
-  const badge = el(
-    doc,
-    "div",
-    { class: "rain-now-banner", "data-rain-now": "", role: "status" },
-    el(doc, "span", { class: "dot", "aria-hidden": "true" }),
-    el(doc, "span", { class: "rain-now-text" }, "Raining now"),
-  );
+  const badge = buildRainingBanner(doc);
   // A suspected gauge fault can't be trusted to be "raining now" either, so the
   // banner is suppressed whenever the gauge is dry OR suspect.
   if (!data.isRaining || data.rainSensorSuspect) {
@@ -97,27 +134,10 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
   const heading = el(doc, "h3", { class: "inline" }, "Rainfall");
 
   // A distinct, kiosk-legible warning (Feature 004), announced to assistive tech,
-  // shown only when the gauge is suspected of not measuring (FR-009). It carries
-  // no timestamp, so the Eastern-time rule (FR-011) is satisfied by construction.
+  // shown only when the gauge is suspected of not measuring (FR-009). It dims the
+  // card content behind it and carries no timestamp.
   const fault = data.rainSensorSuspect
-    ? el(
-        doc,
-        "div",
-        { class: "rain-fault", "data-rain-fault": "", role: "status" },
-        el(doc, "span", { class: "rain-fault-icon", "aria-hidden": "true" }, "⚠"),
-        el(
-          doc,
-          "div",
-          { class: "rain-fault-text" },
-          el(doc, "span", { class: "rain-fault-title" }, "Sensor may not be reporting"),
-          el(
-            doc,
-            "span",
-            { class: "rain-fault-reason", "data-rain-fault-reason": "" },
-            data.rainSensorReason ?? "",
-          ),
-        ),
-      )
+    ? buildFaultOverlay(doc, data.rainSensorReason ?? "")
     : null;
 
   const droplet = el(
@@ -162,6 +182,7 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
     doc,
     "div",
     { class: "rain-main" },
+    badge,
     el(
       doc,
       "div",
@@ -191,7 +212,12 @@ export function renderRainfall(container: HTMLElement, data: RainData): void {
   );
 
   const body = el(doc, "div", { class: "rain-body" }, droplet, main, grid);
+  if (data.rainSensorSuspect) {
+    body.classList.add("dimmed");
+  }
 
-  const banners = fault ? [heading, fault, badge, body] : [heading, badge, body];
+  // The overlay is the LAST card child so it stacks above the dimmed body; the
+  // `.card` is already `position: relative; overflow: hidden`.
+  const banners = fault ? [heading, body, fault] : [heading, body];
   container.replaceChildren(...banners);
 }
