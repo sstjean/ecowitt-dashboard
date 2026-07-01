@@ -228,12 +228,16 @@ function batteryStatus(type: number, raw: number | null): Battery {
   return rule ? rule(raw) : "Unknown";
 }
 
-/** Pull the `sensor` array out of a raw `{ command:[{ sensor:[...] }] }` payload. */
+/**
+ * A raw `get_sensors_info` payload is a **bare array** of flat sensor entries
+ * (one per page, merged upstream). There is no `{ command:[{ sensor }] }`
+ * wrapper — the device never emits one.
+ */
+export type RawSensorsInfo = unknown[];
+
+/** Consume the merged bare array directly; a non-array payload yields `null`. */
 function extractSensorArray(raw: unknown): unknown[] | null {
-  const command = (raw as { command?: unknown } | null | undefined)?.command;
-  if (!Array.isArray(command) || command.length === 0) return null;
-  const sensor = (command[0] as { sensor?: unknown }).sensor;
-  return Array.isArray(sensor) ? sensor : null;
+  return Array.isArray(raw) ? raw : null;
 }
 
 /** Project one raw entry to a health record, or `null` to exclude/skip it. */
@@ -241,7 +245,6 @@ function projectEntry(raw: unknown, capturedAtUtc: string): SensorHealthEntry | 
   const entry = raw as Record<string, unknown>;
   const id = typeof entry.id === "string" ? entry.id : "";
   if (id === "" || PLACEHOLDER_IDS.has(id)) return null; // placeholder / missing id (FR-003)
-  if (entry.idst !== "1") return null; // unregistered (FR-003)
   const type = coerceFinite(entry.type);
   if (type === null) return null; // per-entry salvage: skip malformed (FR-012)
   const typeInt = Math.trunc(type);
@@ -263,9 +266,9 @@ function projectEntry(raw: unknown, capturedAtUtc: string): SensorHealthEntry | 
 /**
  * normalizeSensorHealth — pure projection of a raw (merged) `get_sensors_info`
  * payload into the served `SensorHealthEntry[]`. No I/O, no clock: `capturedAtUtc`
- * is passed in and becomes each entry's `lastSeenUtc`. A non-`{command:[{sensor}]}`
- * payload yields `[]` (whole-payload guard); placeholders and unregistered slots
- * are excluded; a single malformed entry is skipped without discarding siblings.
+ * is passed in and becomes each entry's `lastSeenUtc`. A non-array payload yields
+ * `[]` (whole-payload guard); placeholders and unregistered slots are excluded; a
+ * single malformed entry is skipped without discarding siblings.
  */
 export function normalizeSensorHealth(
   raw: unknown,

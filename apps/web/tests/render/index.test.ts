@@ -182,7 +182,7 @@ describe("sensor health overlay wiring (US3)", () => {
     capturedAtUtc: "2026-06-22T20:19:00Z",
     sensors: [
       {
-        id: "12FAD",
+        id: "1242D",
         img: "wh90",
         type: 48,
         name: "WS90",
@@ -220,7 +220,7 @@ describe("sensor health overlay wiring (US3)", () => {
     const overlay = root.querySelector<HTMLElement>(".sensor-health-overlay")!;
     expect(overlay.querySelectorAll(".sh-row")).toHaveLength(1);
     expect(
-      overlay.querySelector(".sh-row[data-sensor-id='12FAD'] .batt-badge")?.getAttribute(
+      overlay.querySelector(".sh-row[data-sensor-id='1242D'] .batt-badge")?.getAttribute(
         "data-battery",
       ),
     ).toBe("OK");
@@ -235,7 +235,7 @@ describe("per-card sensor indicators (US2)", () => {
     capturedAtUtc: "2026-06-22T20:19:00Z",
     sensors: [
       {
-        id: "12FAD",
+        id: "1242D",
         img: "wh90",
         type: 48,
         name: "WS90",
@@ -243,18 +243,6 @@ describe("per-card sensor indicators (US2)", () => {
         batteryRaw: 5,
         signalBars: 4,
         rssiDbm: -74,
-        registered: true,
-        lastSeenUtc: "2026-06-22T20:19:00Z",
-      },
-      {
-        id: "C7",
-        img: "wh25",
-        type: 4,
-        name: "WH25",
-        battery: "N/A",
-        batteryRaw: 0,
-        signalBars: null,
-        rssiDbm: null,
         registered: true,
         lastSeenUtc: "2026-06-22T20:19:00Z",
       },
@@ -268,21 +256,33 @@ describe("per-card sensor indicators (US2)", () => {
     // solar + rain are both backed by the single WS90 (one record, not two radios).
     for (const panel of ["solar", "rain"]) {
       const ind = root.querySelector<HTMLElement>(`[data-panel="${panel}"] > .sensor-indicator`)!;
-      expect(ind.getAttribute("data-sensor-indicator")).toBe("12FAD");
+      expect(ind.getAttribute("data-sensor-indicator")).toBe("1242D");
       expect(ind.querySelector(".sig-bars")?.getAttribute("data-signal-bars")).toBe("4");
       expect(ind.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("OK");
     }
   });
 
-  it("attaches an N/A no-radio indicator to the wired wh25 cards", () => {
+  it("attaches NO indicator to indoor/baro (no backing get_sensors_info radio)", () => {
     const snap = okSnap();
     snap.sensorHealth = health;
     renderSnapshot(snap, root);
     for (const panel of ["indoor", "baro"]) {
-      const ind = root.querySelector<HTMLElement>(`[data-panel="${panel}"] > .sensor-indicator`)!;
-      expect(ind.querySelector(".sig-bars")).toBeNull(); // no radio strip for wired
-      expect(ind.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("N/A");
+      const ind = root.querySelector<HTMLElement>(`[data-panel="${panel}"] > .sensor-indicator`);
+      expect(ind, `${panel} should have no sensor indicator`).toBeNull();
     }
+  });
+
+  it("degrades a mapped card to Unknown when its sensor is absent from a fresh set", () => {
+    // The WS90 is registered but momentarily missing from this fresh snapshot's
+    // sensors[] (e.g. it dropped from get_sensors_info that cycle) → the card's
+    // find() misses and the indicator honestly degrades to Unknown, never a
+    // fabricated reading.
+    const snap = okSnap();
+    snap.sensorHealth = { available: true, stale: false, capturedAtUtc: "2026-06-22T20:19:00Z", sensors: [] };
+    renderSnapshot(snap, root);
+    const ind = root.querySelector<HTMLElement>(`[data-panel="solar"] > .sensor-indicator`)!;
+    expect(ind.getAttribute("data-sensor-indicator")).toBe("unknown");
+    expect(ind.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("Unknown");
   });
 
   it("renders Unknown indicators when the health envelope is stale", () => {

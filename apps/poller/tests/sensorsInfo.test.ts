@@ -23,29 +23,27 @@ function pagesFetch(
   })) as unknown as typeof fetch;
 }
 
+/** The payload is now a bare array of raw sensor entries (no command wrapper). */
 function sensorIds(data: unknown): string[] {
-  const sensors = (data as { command: Array<{ sensor: Array<{ id: string }> }> })
-    .command[0]!.sensor;
-  return sensors.map((s) => s.id);
+  return (data as Array<{ id: string }>).map((s) => s.id);
 }
 
 const BASE = "http://gw.local";
 
 describe("fetchSensorsInfo", () => {
-  it("merges + dedups both pages on success (ok:true)", async () => {
+  it("merges + dedups both real bare-array pages on success (ok:true)", async () => {
     const result = await fetchSensorsInfo(BASE, 5000, pagesFetch(page1, page2));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const ids = sensorIds(result.data);
-    // page1 (12FAD, A0, C7, FFFFFFFE) + page2 (12FAD dup, FFFFFFFF) → deduped
-    expect(ids).toEqual(["12FAD", "A0", "C7", "FFFFFFFE", "FFFFFFFF"]);
+    // page1 dedup → FFFFFFFF, 1242D, FFFFFFFE ; page2 adds A0 (its placeholders dup out).
+    expect(sensorIds(result.data)).toEqual(["FFFFFFFF", "1242D", "FFFFFFFE", "A0"]);
   });
 
-  it("keeps a duplicate id spanning both pages only once", async () => {
+  it("keeps a placeholder id spanning both pages only once", async () => {
     const result = await fetchSensorsInfo(BASE, 5000, pagesFetch(page1, page2));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(sensorIds(result.data).filter((id) => id === "12FAD")).toHaveLength(1);
+    expect(sensorIds(result.data).filter((id) => id === "FFFFFFFF")).toHaveLength(1);
   });
 
   it("returns page-1 sensors (best-effort) when page 2 network-errors", async () => {
@@ -56,7 +54,23 @@ describe("fetchSensorsInfo", () => {
     const result = await fetchSensorsInfo(BASE, 5000, fetchImpl);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(sensorIds(result.data)).toEqual(["12FAD", "A0", "C7", "FFFFFFFE"]);
+    expect(sensorIds(result.data)).toEqual(["FFFFFFFF", "1242D", "FFFFFFFE"]);
+  });
+
+  it("skips a non-array (garbage) page 2 and returns page-1 sensors, no throw (FR-002)", async () => {
+    const garbagePage2 = { code: -1, msg: "sensors unavailable" };
+    const result = await fetchSensorsInfo(BASE, 5000, pagesFetch(page1, garbagePage2));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(sensorIds(result.data)).toEqual(["FFFFFFFF", "1242D", "FFFFFFFE"]);
+  });
+
+  it("skips an empty (non-array) page 1 body but still succeeds with page 2 sensors", async () => {
+    const result = await fetchSensorsInfo(BASE, 5000, pagesFetch({ not: "an array" }, page2));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // page 1 contributes zero (skipped); page 2's placeholder + registered ids remain.
+    expect(sensorIds(result.data)).toEqual(["FFFFFFFF", "A0"]);
   });
 
   it("aborts and fails fast when page 1 hangs past the timeout", async () => {
@@ -104,13 +118,7 @@ describe("fetchSensorsInfo", () => {
       const result = await fetchSensorsInfo(BASE);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(sensorIds(result.data)).toEqual([
-        "12FAD",
-        "A0",
-        "C7",
-        "FFFFFFFE",
-        "FFFFFFFF",
-      ]);
+      expect(sensorIds(result.data)).toEqual(["FFFFFFFF", "1242D", "FFFFFFFE", "A0"]);
     } finally {
       globalThis.fetch = original;
     }

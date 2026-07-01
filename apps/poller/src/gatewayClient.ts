@@ -33,12 +33,14 @@ export async function fetchLivedata(
   }
 }
 
-/** The raw merged `get_sensors_info` payload — normalization is done downstream. */
-export interface RawSensorsInfo {
-  command: Array<{ sensor: unknown[] }>;
-}
+/**
+ * The raw merged `get_sensors_info` payload — a **bare array** of flat sensor
+ * entries (the device emits one bare array per page; there is no
+ * `{ command:[{ sensor }] }` wrapper). Normalization is done downstream.
+ */
+export type RawSensorsInfo = unknown[];
 
-/** Fetch one `get_sensors_info` page and return its raw `sensor` array. */
+/** Fetch one `get_sensors_info` page and return its raw sensor array. */
 async function fetchSensorsPage(
   url: string,
   timeoutMs: number,
@@ -51,8 +53,10 @@ async function fetchSensorsPage(
     if (!res.ok) {
       return { ok: false, error: `HTTP ${res.status}` };
     }
-    const body = (await res.json()) as RawSensorsInfo;
-    return { ok: true, data: body.command[0]!.sensor };
+    const body = (await res.json()) as unknown;
+    // A page body that is not a bare array (empty, missing, or garbage) is
+    // skipped — it contributes zero sensors and never throws (FR-002).
+    return { ok: true, data: Array.isArray(body) ? body : [] };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {
@@ -100,5 +104,5 @@ export async function fetchSensorsInfo(
     fetchImpl,
   );
   const merged = page2.ok ? [...page1.data, ...page2.data] : page1.data;
-  return { ok: true, data: { command: [{ sensor: dedupById(merged) }] } };
+  return { ok: true, data: dedupById(merged) };
 }

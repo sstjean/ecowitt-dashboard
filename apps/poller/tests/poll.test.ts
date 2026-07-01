@@ -169,7 +169,7 @@ describe("runPollCycle sensor health (US1 + US4)", () => {
     const row = healthRow();
     expect(row?.captured_at).toBe(CAPTURED);
     const sensors = JSON.parse(row!.sensors_json) as Array<{ id: string }>;
-    expect(sensors.map((s) => s.id)).toEqual(["12FAD", "A0", "C7"]);
+    expect(sensors.map((s) => s.id)).toEqual(["1242D", "A0"]);
   });
 
   it("skips the health upsert but still ingests readings when the health fetch fails", async () => {
@@ -190,15 +190,9 @@ describe("runPollCycle sensor health (US1 + US4)", () => {
 
   it("skips the upsert (no error) when normalization yields no registered sensors", async () => {
     const errors: string[] = [];
-    const placeholdersOnly = {
-      command: [
-        {
-          sensor: [
-            { img: "wh57", type: "18", name: "P", id: "FFFFFFFE", batt: "0", idst: "0" },
-          ],
-        },
-      ],
-    };
+    const placeholdersOnly = [
+      { img: "wh57", type: "18", name: "P", id: "FFFFFFFE", batt: "0", idst: "0" },
+    ];
     const reading = await runPollCycle({
       baseUrl: "http://gw.local",
       timeoutMs: 5000,
@@ -208,6 +202,25 @@ describe("runPollCycle sensor health (US1 + US4)", () => {
       onError: (e) => errors.push(e),
     });
 
+    expect(reading?.outdoorTempF).toBe(72.4);
+    expect(errors).toEqual([]);
+    expect(healthRow()).toBeUndefined();
+  });
+
+  it("isolates a garbage (non-array) sensors page — readings intact, no throw, no upsert (FR-012)", async () => {
+    const errors: string[] = [];
+    const garbageSensors = { code: -1, msg: "sensors unavailable", data: "not an array" };
+    const reading = await runPollCycle({
+      baseUrl: "http://gw.local",
+      timeoutMs: 5000,
+      fetchImpl: stackFetch({ livedata: validPayload(), sensors: garbageSensors }),
+      store,
+      now: () => NOW,
+      onError: (e) => errors.push(e),
+    });
+
+    // A non-array get_sensors_info body parses to zero sensors (both pages
+    // skipped): the readings write path is untouched and nothing propagates.
     expect(reading?.outdoorTempF).toBe(72.4);
     expect(errors).toEqual([]);
     expect(healthRow()).toBeUndefined();

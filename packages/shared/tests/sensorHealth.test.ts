@@ -9,9 +9,9 @@ import {
 
 const CAPTURED_AT = "2026-06-30T14:05:00Z";
 
-/** Build a raw `get_sensors_info` payload from inline sensor entries. */
+/** Build a raw `get_sensors_info` payload (a bare array) from inline entries. */
 function raw(sensors: Array<Record<string, string>>): unknown {
-  return { command: [{ sensor: sensors }] };
+  return sensors;
 }
 
 function ws90(overrides: Record<string, string> = {}): Record<string, string> {
@@ -19,7 +19,7 @@ function ws90(overrides: Record<string, string> = {}): Record<string, string> {
     img: "wh90",
     type: "48",
     name: "WS90",
-    id: "12FAD",
+    id: "1242D",
     batt: "5",
     rssi: "-74",
     signal: "4",
@@ -44,8 +44,8 @@ function byId(entries: SensorHealthEntry[], id: string): SensorHealthEntry {
 describe("normalizeSensorHealth — merged capture (SC-001)", () => {
   it("yields exactly one record per registered sensor; placeholders excluded", () => {
     const entries = normalizeSensorHealth(mergedFixture, CAPTURED_AT);
-    expect(entries.map((e) => e.id).sort()).toEqual(["12FAD", "A0", "C7"]);
-    expect(entries).toHaveLength(3);
+    expect(entries.map((e) => e.id).sort()).toEqual(["1242D", "A0"]);
+    expect(entries).toHaveLength(2);
     for (const e of entries) {
       expect(e.registered).toBe(true);
       expect(e.lastSeenUtc).toBe(CAPTURED_AT);
@@ -54,29 +54,30 @@ describe("normalizeSensorHealth — merged capture (SC-001)", () => {
 
   it("projects the live WS90 (type 48) exactly", () => {
     const entries = normalizeSensorHealth(mergedFixture, CAPTURED_AT);
-    expect(byId(entries, "12FAD")).toEqual({
-      id: "12FAD",
+    expect(byId(entries, "1242D")).toEqual({
+      id: "1242D",
       img: "wh90",
       type: 48,
-      name: "WS90",
+      name: "Temp & Humidity & Solar & Wind & Rain",
       battery: "OK",
       batteryRaw: 5,
       signalBars: 4,
-      rssiDbm: -74,
+      rssiDbm: -76,
       registered: true,
       lastSeenUtc: CAPTURED_AT,
     });
   });
 
-  it("returns [] for a non-{command:[{sensor}]} payload (whole-payload guard, SC-005)", () => {
+  it("returns [] for a non-array payload (whole-payload guard, SC-005)", () => {
     expect(normalizeSensorHealth(garbageFixture, CAPTURED_AT)).toEqual([]);
   });
 
-  it("returns [] for structurally-broken shapes", () => {
+  it("returns [] for structurally-broken (non-array) shapes", () => {
     expect(normalizeSensorHealth(null, CAPTURED_AT)).toEqual([]);
-    expect(normalizeSensorHealth({ command: [] }, CAPTURED_AT)).toEqual([]);
-    expect(normalizeSensorHealth({ command: [{}] }, CAPTURED_AT)).toEqual([]);
-    expect(normalizeSensorHealth({ command: [{ sensor: "x" }] }, CAPTURED_AT)).toEqual([]);
+    expect(normalizeSensorHealth(undefined, CAPTURED_AT)).toEqual([]);
+    expect(normalizeSensorHealth({ command: [{ sensor: [] }] }, CAPTURED_AT)).toEqual([]);
+    expect(normalizeSensorHealth("not-an-array", CAPTURED_AT)).toEqual([]);
+    expect(normalizeSensorHealth(42, CAPTURED_AT)).toEqual([]);
   });
 });
 
@@ -157,25 +158,47 @@ describe("normalizeSensorHealth — exclusion + per-entry salvage (FR-003/FR-012
       ]),
       CAPTURED_AT,
     );
-    expect(entries.map((e) => e.id)).toEqual(["12FAD"]);
+    expect(entries.map((e) => e.id)).toEqual(["1242D"]);
   });
 
-  it("excludes an unregistered entry (idst !== '1')", () => {
+  it("registers on id, not idst: a valid-id entry with idst:'0' is INCLUDED", () => {
+    // Real placeholders carry idst:'1'; real registered radios can carry any
+    // idst. Registration MUST key on id (non-placeholder), never on idst.
     const entries = normalizeSensorHealth(
       raw([ws90(), ws90({ id: "AB", idst: "0" })]),
       CAPTURED_AT,
     );
-    expect(entries.map((e) => e.id)).toEqual(["12FAD"]);
+    expect(entries.map((e) => e.id)).toEqual(["1242D", "AB"]);
+  });
+
+  it("excludes a placeholder id even when idst is '1' (id gate, not idst)", () => {
+    const entries = normalizeSensorHealth(
+      raw([
+        ws90(),
+        { img: "wh85", type: "49", name: "P", id: "FFFFFFFF", batt: "9", rssi: "--", signal: "--", idst: "1" },
+      ]),
+      CAPTURED_AT,
+    );
+    expect(entries.map((e) => e.id)).toEqual(["1242D"]);
+  });
+
+  it("coerces rssi/signal '--' on a registered entry to null (never NaN/0)", () => {
+    const entries = normalizeSensorHealth(
+      raw([ws90({ rssi: "--", signal: "--" })]),
+      CAPTURED_AT,
+    );
+    expect(first(entries).rssiDbm).toBeNull();
+    expect(first(entries).signalBars).toBeNull();
   });
 
   it("excludes an entry with a missing/empty id", () => {
     const noId = ws90();
     delete (noId as Record<string, string>).id;
     const entries = normalizeSensorHealth(
-      raw([noId, ws90({ id: "" }), ws90({ id: "12FAD" })]),
+      raw([noId, ws90({ id: "" }), ws90({ id: "1242D" })]),
       CAPTURED_AT,
     );
-    expect(entries.map((e) => e.id)).toEqual(["12FAD"]);
+    expect(entries.map((e) => e.id)).toEqual(["1242D"]);
   });
 
   it("skips a malformed entry (non-finite type) but keeps valid siblings", () => {
@@ -186,6 +209,6 @@ describe("normalizeSensorHealth — exclusion + per-entry salvage (FR-003/FR-012
       ]),
       CAPTURED_AT,
     );
-    expect(entries.map((e) => e.id)).toEqual(["12FAD"]);
+    expect(entries.map((e) => e.id)).toEqual(["1242D"]);
   });
 });

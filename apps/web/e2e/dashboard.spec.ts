@@ -345,24 +345,22 @@ test.describe("sensor health — per-card indicators (US2)", () => {
     await expect(page.locator("[data-out-temp]")).toBeVisible();
   });
 
-  test("shows 4 bars + OK on each WS90-backed card and N/A/no-radio on the wired cards", async ({
+  test("shows 4 bars + OK on each WS90-backed card and no indicator on the wired cards", async ({
     page,
   }) => {
-    // The single WS90 (12FAD) backs outdoor/solar/rain — all reflect one record.
+    // The single WS90 (1242D) backs outdoor/solar/rain — all reflect one record.
     for (const panel of ["outdoor", "solar", "rain"]) {
       const ind = page.locator(`[data-panel="${panel}"] > .sensor-indicator`);
       await expect(ind, `${panel} indicator`).toBeVisible();
-      await expect(ind).toHaveAttribute("data-sensor-indicator", "12FAD");
+      await expect(ind).toHaveAttribute("data-sensor-indicator", "1242D");
       await expect(ind.locator(".sig-bars")).toHaveAttribute("data-signal-bars", "4");
       await expect(ind.locator(".sig-bar.on")).toHaveCount(4);
       await expect(ind.locator(".batt-badge")).toHaveAttribute("data-battery", "OK");
     }
-    // The wired wh25 (C7) backs indoor/baro: N/A battery, no radio strip, never "0%".
+    // Indoor/baro have no backing get_sensors_info radio (the wired wh25 is
+    // reported only in get_livedata_info) → no indicator at all, honest absence.
     for (const panel of ["indoor", "baro"]) {
-      const ind = page.locator(`[data-panel="${panel}"] > .sensor-indicator`);
-      await expect(ind.locator(".batt-badge")).toHaveAttribute("data-battery", "N/A");
-      await expect(ind.locator(".sig-bar")).toHaveCount(0);
-      await expect(ind).not.toContainText("%");
+      await expect(page.locator(`[data-panel="${panel}"] > .sensor-indicator`)).toHaveCount(0);
     }
   });
 });
@@ -384,17 +382,14 @@ test.describe("sensor health — dedicated overlay (US3)", () => {
     await page.getByRole("button", { name: "Sensors" }).click();
     await expect(overlay).toBeVisible();
 
-    await expect(overlay.locator(".sh-row")).toHaveCount(3);
-    await expect(overlay.locator('.sh-row[data-sensor-id="12FAD"]')).toContainText("WS90");
+    await expect(overlay.locator(".sh-row")).toHaveCount(2);
+    await expect(overlay.locator('.sh-row[data-sensor-id="1242D"]')).toContainText("WS90");
     await expect(overlay.locator('.sh-row[data-sensor-id="A0"]')).toContainText("CH2");
-    await expect(overlay.locator('.sh-row[data-sensor-id="C7"]')).toContainText("WH25");
-    // The wired sensor shows N/A, never a percentage.
-    await expect(
-      overlay.locator('.sh-row[data-sensor-id="C7"] .batt-badge'),
-    ).toHaveAttribute("data-battery", "N/A");
+    // No fabricated wired wh25 (C7) row is served or rendered.
+    await expect(overlay.locator('.sh-row[data-sensor-id="C7"]')).toHaveCount(0);
     // Last-seen renders in America/New_York: 20:19Z → 4:19 pm EDT (SC-007).
     await expect(
-      overlay.locator('.sh-row[data-sensor-id="12FAD"] .sh-lastseen'),
+      overlay.locator('.sh-row[data-sensor-id="1242D"] .sh-lastseen'),
     ).toContainText("4:19 pm");
 
     // Closing restores the kiosk view.
