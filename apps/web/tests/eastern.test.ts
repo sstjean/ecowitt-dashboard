@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { formatEasternDate, formatEasternTime } from "../src/format/eastern.ts";
+import {
+  formatEasternDate,
+  formatEasternTime,
+  formatEasternDateTime,
+} from "../src/format/eastern.ts";
 
 describe("formatEasternDate", () => {
   it("renders a full weekday/month/ordinal-day/year in Eastern (EDT in summer)", () => {
@@ -47,5 +51,28 @@ describe("formatEasternTime", () => {
   it("renders midnight as 12:00 AM Eastern", () => {
     // 04:00Z = 12:00 AM EDT.
     expect(formatEasternTime(new Date("2026-06-20T04:00:00Z"))).toBe("12:00 am");
+  });
+});
+
+describe("formatEasternDateTime", () => {
+  it("renders a compact month/day + 12-hour Eastern time in summer (EDT)", () => {
+    // 20:19Z in June is 4:19 PM EDT (UTC-4), June 22.
+    expect(formatEasternDateTime(new Date("2026-06-22T20:19:00Z"))).toBe(
+      "Jun 22, 4:19 pm",
+    );
+  });
+
+  it("renders the compact stamp in winter (EST, UTC-5)", () => {
+    // 22:05Z in January is 5:05 PM EST, January 15.
+    expect(formatEasternDateTime(new Date("2026-01-15T22:05:00Z"))).toBe(
+      "Jan 15, 5:05 pm",
+    );
+  });
+
+  it("shifts the calendar day across the Eastern midnight boundary", () => {
+    // 02:30Z on the 20th is 10:30 PM EDT on the 19th.
+    expect(formatEasternDateTime(new Date("2026-06-20T02:30:00Z"))).toBe(
+      "Jun 19, 10:30 pm",
+    );
   });
 });

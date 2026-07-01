@@ -23,6 +23,15 @@ const clockFormat = new Intl.DateTimeFormat("en-US", {
   hour12: true,
 });
 
+const dateTimeFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: TIME_ZONE,
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
 const minutesFormat = new Intl.DateTimeFormat("en-US", {
   timeZone: TIME_ZONE,
   hour: "2-digit",
@@ -107,4 +116,9 @@ export function formatEasternTime(date: Date): string {
 /** "6:05:09 pm" in America/New_York (12-hour, with seconds) for the live clock. */
 export function formatEasternClock(date: Date): string {
   return formatLowerMeridiem(clockFormat, date);
+}
+
+/** "Jun 22, 4:19 pm" — compact Eastern month/day + 12-hour time for last-seen stamps. */
+export function formatEasternDateTime(date: Date): string {
+  return formatLowerMeridiem(dateTimeFormat, date);
 }

@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { fullMetricMapSchema, type FullMetricMap } from "@ecowitt/shared";
+import type { SensorHealthEntry } from "@ecowitt/shared";
 
 const BOOTSTRAP_SQL = `
 CREATE TABLE IF NOT EXISTS readings (
@@ -9,6 +10,11 @@ CREATE TABLE IF NOT EXISTS readings (
   pressure_hpa REAL GENERATED ALWAYS AS (json_extract(metrics_json, '$.pressureHpa')) STORED
 );
 CREATE INDEX IF NOT EXISTS idx_readings_observed_at ON readings (observed_at);
+CREATE TABLE IF NOT EXISTS sensor_health (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  captured_at TEXT NOT NULL,
+  sensors_json TEXT NOT NULL
+);
 `;
 
 export interface StoredReading {
@@ -16,11 +22,19 @@ export interface StoredReading {
   metrics: FullMetricMap;
 }
 
+/** The current sensor-health snapshot as read from the single-row cache. */
+export interface StoredSensorHealth {
+  capturedAt: string;
+  sensors: SensorHealthEntry[];
+}
+
 export interface ReadStore {
   /** The most recently observed reading, or null when the store is empty. */
   getLatest(): StoredReading | null;
   /** All readings with observed_at >= sinceIso, oldest first. */
   getWindow(sinceIso: string): StoredReading[];
+  /** The current sensor-health snapshot (id=1), or null when none is cached. */
+  getSensorHealth(): StoredSensorHealth | null;
   close(): void;
 }
 
@@ -47,6 +61,9 @@ export function openReadStore(path: string): ReadStore {
   const window = db.prepare(
     "SELECT observed_at, metrics_json FROM readings WHERE observed_at >= ? ORDER BY observed_at ASC",
   );
+  const sensorHealth = db.prepare(
+    "SELECT captured_at, sensors_json FROM sensor_health WHERE id = 1",
+  );
 
   return {
     getLatest() {
@@ -61,6 +78,16 @@ export function openReadStore(path: string): ReadStore {
         metrics_json: string;
       }>;
       return rows.map(toReading);
+    },
+    getSensorHealth() {
+      const row = sensorHealth.get() as
+        | { captured_at: string; sensors_json: string }
+        | undefined;
+      if (row === undefined) return null;
+      return {
+        capturedAt: row.captured_at,
+        sensors: JSON.parse(row.sensors_json) as SensorHealthEntry[],
+      };
     },
     close() {
       db.close();

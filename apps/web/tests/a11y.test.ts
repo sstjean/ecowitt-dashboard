@@ -12,8 +12,9 @@ describe("accessibility", () => {
   });
 
   it("sizes interactive controls for touch (≥44px targets)", () => {
-    expect(css).toMatch(/\.nav-item\s*\{[^}]*min-height:\s*44px/);
-    expect(css).toMatch(/\.hamburger\s*\{[^}]*height:\s*46px/);
+    // Feature 007 enlarged these beyond the 44px floor for wall-kiosk legibility.
+    expect(css).toMatch(/\.nav-item\s*\{[^}]*min-height:\s*52px/);
+    expect(css).toMatch(/\.hamburger\s*\{[^}]*height:\s*56px/);
   });
 
   it("renders headline dials at glance-readable scale", () => {
@@ -29,7 +30,7 @@ describe("accessibility", () => {
     expect(hamburger?.getAttribute("aria-label")).toBe("Open menu");
 
     const navButtons = [...element.querySelectorAll(".nav-item")];
-    expect(navButtons).toHaveLength(5);
+    expect(navButtons).toHaveLength(6);
     expect(navButtons.every((b) => b.tagName === "BUTTON")).toBe(true);
     expect(navButtons[0]?.getAttribute("aria-current")).toBe("page");
   });

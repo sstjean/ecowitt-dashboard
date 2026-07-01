@@ -50,6 +50,7 @@ function okEnvelope(): LatestSnapshot {
     conditionText: "Sunny",
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 
@@ -66,6 +67,7 @@ function noDataEnvelope(): LatestSnapshot {
     conditionText: null,
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import type { FullMetricMap } from "@ecowitt/shared";
+import type { SensorHealthEntry } from "@ecowitt/shared";
 import { buildServer } from "../src/server.ts";
 import { openReadStore, type ReadStore } from "../src/store.ts";
 import { degToCardinal } from "../src/enrich.ts";
@@ -70,6 +71,39 @@ function seed(observedAt: string, metrics: FullMetricMap): void {
     observedAt,
     JSON.stringify(metrics),
   );
+  db.close();
+}
+
+function sampleSensors(): SensorHealthEntry[] {
+  return [
+    {
+      id: "12FAD",
+      img: "wh90",
+      type: 48,
+      name: "WS90",
+      battery: "OK",
+      batteryRaw: 5,
+      signalBars: 4,
+      rssiDbm: -74,
+      registered: true,
+      lastSeenUtc: "2026-06-21T15:30:00.000Z",
+    },
+  ];
+}
+
+function seedHealth(capturedAt: string, sensors: SensorHealthEntry[]): void {
+  const db = new Database(dbPath);
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS sensor_health (
+       id INTEGER PRIMARY KEY CHECK (id = 1),
+       captured_at TEXT NOT NULL,
+       sensors_json TEXT NOT NULL
+     );`,
+  );
+  db.prepare(
+    `INSERT INTO sensor_health (id, captured_at, sensors_json) VALUES (1, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET captured_at = excluded.captured_at, sensors_json = excluded.sensors_json`,
+  ).run(capturedAt, JSON.stringify(sensors));
   db.close();
 }
 
@@ -344,5 +378,47 @@ describe("buildLatestSnapshot rain-fault wiring (US1)", () => {
     expect(snap.status).toBe("no-data");
     expect(snap.rainSensorSuspect).toBe(false);
     expect(snap.rainSensorReason).toBeNull();
+  });
+});
+
+describe("buildLatestSnapshot sensor-health wiring (US1)", () => {
+  const NOW = new Date("2026-06-21T15:30:30.000Z");
+  const CONDITION = {
+    conditionText: null,
+    conditionStale: true,
+    hasObservation: false,
+  };
+
+  it("carries the fresh sensor-health snapshot on the ok branch", () => {
+    seed("2026-06-21T15:30:00.000Z", sampleMetrics());
+    seedHealth("2026-06-21T15:30:00.000Z", sampleSensors());
+    store = openReadStore(dbPath);
+    const snap = buildLatestSnapshot(store, config, NOW, CONDITION);
+    expect(snap.status).toBe("ok");
+    expect(snap.sensorHealth.available).toBe(true);
+    expect(snap.sensorHealth.stale).toBe(false);
+    expect(snap.sensorHealth.capturedAtUtc).toBe("2026-06-21T15:30:00.000Z");
+    expect(snap.sensorHealth.sensors.map((s) => s.id)).toEqual(["12FAD"]);
+  });
+
+  it("carries an empty sensorHealth on the no-data branch when no snapshot exists", () => {
+    store = openReadStore(dbPath); // no readings, no health
+    const snap = buildLatestSnapshot(store, config, NOW, CONDITION);
+    expect(snap.status).toBe("no-data");
+    expect(snap.sensorHealth).toEqual({
+      available: false,
+      stale: true,
+      capturedAtUtc: null,
+      sensors: [],
+    });
+  });
+
+  it("surfaces the health snapshot on the no-data branch too (readings/health independent)", () => {
+    seedHealth("2026-06-21T15:30:00.000Z", sampleSensors());
+    store = openReadStore(dbPath); // health present, no readings
+    const snap = buildLatestSnapshot(store, config, NOW, CONDITION);
+    expect(snap.status).toBe("no-data");
+    expect(snap.sensorHealth.available).toBe(true);
+    expect(snap.sensorHealth.sensors).toHaveLength(1);
   });
 });

@@ -1,5 +1,5 @@
-export type GatewayResult =
-  | { ok: true; data: unknown }
+export type GatewayResult<T = unknown> =
+  | { ok: true; data: T }
   | { ok: false; error: string };
 
 /** Default fail-fast timeout for a gateway pull (FR-046). */
@@ -31,4 +31,74 @@ export async function fetchLivedata(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** The raw merged `get_sensors_info` payload — normalization is done downstream. */
+export interface RawSensorsInfo {
+  command: Array<{ sensor: unknown[] }>;
+}
+
+/** Fetch one `get_sensors_info` page and return its raw `sensor` array. */
+async function fetchSensorsPage(
+  url: string,
+  timeoutMs: number,
+  fetchImpl: typeof fetch,
+): Promise<GatewayResult<unknown[]>> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(url, { signal: controller.signal });
+    if (!res.ok) {
+      return { ok: false, error: `HTTP ${res.status}` };
+    }
+    const body = (await res.json()) as RawSensorsInfo;
+    return { ok: true, data: body.command[0]!.sensor };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Merge two raw sensor arrays, keeping the first occurrence of each `id`. */
+function dedupById(sensors: unknown[]): unknown[] {
+  const seen = new Set<string>();
+  const out: unknown[] = [];
+  for (const sensor of sensors) {
+    const key = String((sensor as { id?: unknown }).id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(sensor);
+  }
+  return out;
+}
+
+/**
+ * Pull both pages of the gateway's `get_sensors_info` endpoint, each under its
+ * own fail-fast `AbortController` timeout, and return the merged+deduped raw
+ * payload. Page 2 is best-effort: if page 1 succeeds and page 2 fails, page 1's
+ * sensors are returned; if page 1 fails, the whole call fails. Mirrors
+ * `fetchLivedata` — never throws, so the readings path is never blocked.
+ * Per the Single Cross-VLAN Consumer rule, only the poller may call this.
+ */
+export async function fetchSensorsInfo(
+  baseUrl: string,
+  timeoutMs = DEFAULT_GATEWAY_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch,
+): Promise<GatewayResult<RawSensorsInfo>> {
+  const page1 = await fetchSensorsPage(
+    `${baseUrl}/get_sensors_info?page=1`,
+    timeoutMs,
+    fetchImpl,
+  );
+  if (!page1.ok) {
+    return { ok: false, error: page1.error };
+  }
+  const page2 = await fetchSensorsPage(
+    `${baseUrl}/get_sensors_info?page=2`,
+    timeoutMs,
+    fetchImpl,
+  );
+  const merged = page2.ok ? [...page1.data, ...page2.data] : page1.data;
+  return { ok: true, data: { command: [{ sensor: dedupById(merged) }] } };
 }

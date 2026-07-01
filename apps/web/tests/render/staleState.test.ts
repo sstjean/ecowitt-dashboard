@@ -71,6 +71,7 @@ function snap(serverTime: string): LatestSnapshot {
     conditionText: "Sunny",
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 

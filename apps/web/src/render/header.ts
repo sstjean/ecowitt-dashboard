@@ -10,7 +10,13 @@ export interface HeaderHandle {
   start(now?: () => Date): () => void;
 }
 
-/** A single nav entry. The active page is current; the rest are placeholders. */
+/** Optional wiring for the header's actionable nav items. */
+export interface HeaderOptions {
+  /** Invoked when the "Sensors" menu item is chosen (opens the health overlay). */
+  onSensors?: () => void;
+}
+
+/** A single placeholder nav entry. The active page is current; the rest are disabled. */
 function navItem(doc: Document, label: string, active: boolean): HTMLElement {
   const attrs = active
     ? { class: "nav-item active", "aria-current": "page" }
@@ -19,7 +25,7 @@ function navItem(doc: Document, label: string, active: boolean): HTMLElement {
 }
 
 /** Build the three-zone header: menu button, centred date, right-aligned clock. */
-export function createHeader(doc: Document): HeaderHandle {
+export function createHeader(doc: Document, opts: HeaderOptions = {}): HeaderHandle {
   const menuIcon = svgEl(
     doc,
     "svg",
@@ -35,13 +41,28 @@ export function createHeader(doc: Document): HeaderHandle {
   const date = el(doc, "div", { class: "h-date" }, "—");
   const time = el(doc, "div", { class: "h-time" }, "--:--:--");
 
-  // In-app navigation: Live is the active page; History/Trends/Records/Settings
-  // are placeholders until their views land. Collapsed behind the hamburger.
+  function closeMenu(): void {
+    nav.hidden = true;
+    hamburger.setAttribute("aria-expanded", "false");
+  }
+
+  // "Sensors" is an actionable item (not a placeholder): it opens the Sensor
+  // Health overlay and collapses the menu, keeping the single-viewport kiosk tidy.
+  const sensors = el(doc, "button", { class: "nav-item" }, "Sensors");
+  sensors.addEventListener("click", () => {
+    opts.onSensors?.();
+    closeMenu();
+  });
+
+  // In-app navigation: Live is the active page; Sensors opens the health overlay;
+  // History/Trends/Records/Settings are placeholders until their views land.
+  // Collapsed behind the hamburger.
   const nav = el(
     doc,
     "nav",
     { class: "h-nav", hidden: "" },
     navItem(doc, "Live", true),
+    sensors,
     navItem(doc, "History", false),
     navItem(doc, "Trends", false),
     navItem(doc, "Records", false),

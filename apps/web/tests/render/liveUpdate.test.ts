@@ -69,6 +69,7 @@ function snap(r: LiveReadingSnapshot): LatestSnapshot {
     conditionText: "Sunny",
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openWriteStore, type WriteStore } from "../src/store.ts";
@@ -51,13 +51,24 @@ function payload(outdoorTempF: string): unknown {
   };
 }
 
-/** A fetch stub that returns the given payload as a successful JSON response. */
+/** A fetch stub that returns the given payload as a successful JSON response.
+ * `get_sensors_info` (both pages) is routed to the static page fixtures so a
+ * healthy cycle also completes its sensor-health step cleanly. */
 function stubFetch(body: unknown): typeof fetch {
-  return (async () => ({
-    ok: true,
-    status: 200,
-    json: async () => body,
-  })) as unknown as typeof fetch;
+  return (async (url: string) => {
+    if (url.includes("get_sensors_info")) {
+      const page = url.includes("page=2") ? "page2.json" : "page1.json";
+      return {
+        ok: true,
+        status: 200,
+        json: async () =>
+          JSON.parse(
+            readFileSync(new URL(`./fixtures/sensorsInfo/${page}`, import.meta.url), "utf8"),
+          ),
+      };
+    }
+    return { ok: true, status: 200, json: async () => body };
+  }) as unknown as typeof fetch;
 }
 
 let dir: string;

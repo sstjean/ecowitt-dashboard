@@ -68,4 +68,17 @@ test.describe("wall kiosk legibility @ 2160x1440", () => {
     });
     expect(overflow).toBeLessThanOrEqual(1);
   });
+
+  test("keeps the Sensor Health overlay hidden on load so the no-scroll contract holds", async ({
+    page,
+  }) => {
+    // The overlay is position:fixed and hidden by default (Feature 007 / US3);
+    // it must not leak into the default kiosk layout or add vertical scroll.
+    await expect(page.locator("[data-sensor-health-overlay]")).toBeHidden();
+    const overflow = await page.evaluate(() => {
+      const el = document.scrollingElement!;
+      return el.scrollHeight - el.clientHeight;
+    });
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
 });

@@ -1,6 +1,6 @@
 import type { MappedReading } from "@ecowitt/shared";
-import { cloudRealtimeToGateway } from "@ecowitt/shared";
-import { fetchLivedata } from "./gatewayClient.ts";
+import { cloudRealtimeToGateway, normalizeSensorHealth } from "@ecowitt/shared";
+import { fetchLivedata, fetchSensorsInfo } from "./gatewayClient.ts";
 import { fetchCloudRealtime } from "./ecowittCloud.ts";
 import { ingestPayload } from "./ingest.ts";
 import type { WriteStore } from "./store.ts";
@@ -61,14 +61,45 @@ async function ingestResult(
 }
 
 /**
+ * Fetch, normalize, and persist the per-sensor health snapshot in isolation from
+ * the readings write path (US4). Only the gateway poll runs this — the health
+ * endpoint (`get_sensors_info`) is gateway-only (the cloud source has no
+ * equivalent). Any failure — a failed/garbage fetch, an empty normalized set, or
+ * a persist error — is reported via `onError` and never propagates or touches the
+ * readings that were already ingested.
+ */
+async function ingestSensorHealth(deps: PollDeps): Promise<void> {
+  try {
+    const health = await fetchSensorsInfo(deps.baseUrl, deps.timeoutMs, deps.fetchImpl);
+    if (!health.ok) {
+      deps.onError(health.error);
+      return;
+    }
+    const capturedAtUtc = deps.now().toISOString();
+    const sensors = normalizeSensorHealth(health.data, capturedAtUtc);
+    if (sensors.length > 0) {
+      deps.store.upsertSensorHealth(capturedAtUtc, sensors);
+    }
+  } catch (err) {
+    deps.onError(String(err));
+  }
+}
+
+/**
  * One end-to-end gateway poll: pull the gateway payload, then validate → map →
  * persist. Any failure (unreachable gateway, malformed/partial payload,
  * duplicate observation) is reported via `onError` and leaves the store
- * untouched; the scheduler simply tries again next cadence.
+ * untouched; the scheduler simply tries again next cadence. On a successful
+ * readings ingest, the per-sensor health snapshot is additionally refreshed in
+ * isolation (US1/US4).
  */
 export async function runPollCycle(deps: PollDeps): Promise<MappedReading | null> {
   const result = await fetchLivedata(deps.baseUrl, deps.timeoutMs, deps.fetchImpl);
-  return ingestResult(result, (data) => data, deps);
+  const reading = await ingestResult(result, (data) => data, deps);
+  if (reading !== null) {
+    await ingestSensorHealth(deps);
+  }
+  return reading;
 }
 
 /**

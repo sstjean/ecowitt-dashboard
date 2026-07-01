@@ -72,6 +72,7 @@ function okSnap(r: LiveReadingSnapshot = reading()): LatestSnapshot {
     conditionText: "Sunny",
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 
@@ -88,6 +89,7 @@ function noDataSnap(): LatestSnapshot {
     conditionText: null,
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 
@@ -166,5 +168,146 @@ describe("mountDashboard", () => {
     dashboard.stop();
     vi.advanceTimersByTime(1000);
     expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 pm");
+  });
+});
+
+describe("sensor health overlay wiring (US3)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const ws90Health: LatestSnapshot["sensorHealth"] = {
+    available: true,
+    stale: false,
+    capturedAtUtc: "2026-06-22T20:19:00Z",
+    sensors: [
+      {
+        id: "12FAD",
+        img: "wh90",
+        type: 48,
+        name: "WS90",
+        battery: "OK",
+        batteryRaw: 5,
+        signalBars: 4,
+        rssiDbm: -74,
+        registered: true,
+        lastSeenUtc: "2026-06-22T20:19:00Z",
+      },
+    ],
+  };
+
+  it("mounts a hidden health overlay and reveals it from the header 'Sensors' item", () => {
+    const dashboard = mountDashboard(root);
+    const overlay = root.querySelector<HTMLElement>(".sensor-health-overlay")!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.hidden).toBe(true);
+
+    // Open the menu, choose Sensors → overlay reveals.
+    root.querySelector<HTMLButtonElement>(".hamburger")!.click();
+    const sensors = [...root.querySelectorAll<HTMLElement>(".nav-item")].find(
+      (n) => n.textContent === "Sensors",
+    )!;
+    sensors.click();
+    expect(overlay.hidden).toBe(false);
+    dashboard.stop();
+  });
+
+  it("populates the overlay rows from the snapshot's sensorHealth", () => {
+    const dashboard = mountDashboard(root);
+    const snap = okSnap();
+    snap.sensorHealth = ws90Health;
+    dashboard.update(snap);
+    const overlay = root.querySelector<HTMLElement>(".sensor-health-overlay")!;
+    expect(overlay.querySelectorAll(".sh-row")).toHaveLength(1);
+    expect(
+      overlay.querySelector(".sh-row[data-sensor-id='12FAD'] .batt-badge")?.getAttribute(
+        "data-battery",
+      ),
+    ).toBe("OK");
+    dashboard.stop();
+  });
+});
+
+describe("per-card sensor indicators (US2)", () => {
+  const health: LatestSnapshot["sensorHealth"] = {
+    available: true,
+    stale: false,
+    capturedAtUtc: "2026-06-22T20:19:00Z",
+    sensors: [
+      {
+        id: "12FAD",
+        img: "wh90",
+        type: 48,
+        name: "WS90",
+        battery: "OK",
+        batteryRaw: 5,
+        signalBars: 4,
+        rssiDbm: -74,
+        registered: true,
+        lastSeenUtc: "2026-06-22T20:19:00Z",
+      },
+      {
+        id: "C7",
+        img: "wh25",
+        type: 4,
+        name: "WH25",
+        battery: "N/A",
+        batteryRaw: 0,
+        signalBars: null,
+        rssiDbm: null,
+        registered: true,
+        lastSeenUtc: "2026-06-22T20:19:00Z",
+      },
+    ],
+  };
+
+  it("attaches the one WS90 record (bars + OK) to every WS90-backed card", () => {
+    const snap = okSnap();
+    snap.sensorHealth = health;
+    renderSnapshot(snap, root);
+    // solar + rain are both backed by the single WS90 (one record, not two radios).
+    for (const panel of ["solar", "rain"]) {
+      const ind = root.querySelector<HTMLElement>(`[data-panel="${panel}"] > .sensor-indicator`)!;
+      expect(ind.getAttribute("data-sensor-indicator")).toBe("12FAD");
+      expect(ind.querySelector(".sig-bars")?.getAttribute("data-signal-bars")).toBe("4");
+      expect(ind.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("OK");
+    }
+  });
+
+  it("attaches an N/A no-radio indicator to the wired wh25 cards", () => {
+    const snap = okSnap();
+    snap.sensorHealth = health;
+    renderSnapshot(snap, root);
+    for (const panel of ["indoor", "baro"]) {
+      const ind = root.querySelector<HTMLElement>(`[data-panel="${panel}"] > .sensor-indicator`)!;
+      expect(ind.querySelector(".sig-bars")).toBeNull(); // no radio strip for wired
+      expect(ind.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("N/A");
+    }
+  });
+
+  it("renders Unknown indicators when the health envelope is stale", () => {
+    const snap = okSnap();
+    snap.sensorHealth = { ...health, stale: true };
+    renderSnapshot(snap, root);
+    const ind = root.querySelector<HTMLElement>(`[data-panel="solar"] > .sensor-indicator`)!;
+    expect(ind.getAttribute("data-sensor-indicator")).toBe("unknown");
+    expect(ind.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("Unknown");
+  });
+
+  it("re-creates each card indicator on every render (no duplication)", () => {
+    const snap = okSnap();
+    snap.sensorHealth = health;
+    renderSnapshot(snap, root);
+    renderSnapshot(snap, root);
+    expect(
+      root.querySelectorAll(`[data-panel="solar"] > .sensor-indicator`),
+    ).toHaveLength(1);
+  });
+
+  it("attaches honest Unknown indicators even in the missing (no-reading) branch", () => {
+    renderSnapshot(noDataSnap(), root);
+    const ind = root.querySelector<HTMLElement>(`[data-panel="solar"] > .sensor-indicator`);
+    expect(ind).not.toBeNull();
+    expect(ind?.getAttribute("data-sensor-indicator")).toBe("unknown");
   });
 });

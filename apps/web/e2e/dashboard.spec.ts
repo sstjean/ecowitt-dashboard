@@ -331,3 +331,74 @@ test.describe("rainfall cue layout @ 2160x1440", () => {
     await expect(page.locator("[data-rain-now]")).toBeHidden();
   });
 });
+
+/**
+ * Sensor battery & signal health (Feature 007). The health set rides the same
+ * `/latest` envelope, so no second web call is made. These guards render the
+ * REAL built artifact and assert the per-card indicators (US2) and the dedicated
+ * overlay reached via the header "Sensors" item (US3).
+ */
+test.describe("sensor health — per-card indicators (US2)", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockLatest(page, latestSnapshot);
+    await page.goto("/");
+    await expect(page.locator("[data-out-temp]")).toBeVisible();
+  });
+
+  test("shows 4 bars + OK on each WS90-backed card and N/A/no-radio on the wired cards", async ({
+    page,
+  }) => {
+    // The single WS90 (12FAD) backs outdoor/solar/rain — all reflect one record.
+    for (const panel of ["outdoor", "solar", "rain"]) {
+      const ind = page.locator(`[data-panel="${panel}"] > .sensor-indicator`);
+      await expect(ind, `${panel} indicator`).toBeVisible();
+      await expect(ind).toHaveAttribute("data-sensor-indicator", "12FAD");
+      await expect(ind.locator(".sig-bars")).toHaveAttribute("data-signal-bars", "4");
+      await expect(ind.locator(".sig-bar.on")).toHaveCount(4);
+      await expect(ind.locator(".batt-badge")).toHaveAttribute("data-battery", "OK");
+    }
+    // The wired wh25 (C7) backs indoor/baro: N/A battery, no radio strip, never "0%".
+    for (const panel of ["indoor", "baro"]) {
+      const ind = page.locator(`[data-panel="${panel}"] > .sensor-indicator`);
+      await expect(ind.locator(".batt-badge")).toHaveAttribute("data-battery", "N/A");
+      await expect(ind.locator(".sig-bar")).toHaveCount(0);
+      await expect(ind).not.toContainText("%");
+    }
+  });
+});
+
+test.describe("sensor health — dedicated overlay (US3)", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockLatest(page, latestSnapshot);
+    await page.goto("/");
+    await expect(page.locator("[data-out-temp]")).toBeVisible();
+  });
+
+  test("is hidden until 'Sensors' is chosen, then lists every registered sensor (Eastern last-seen)", async ({
+    page,
+  }) => {
+    const overlay = page.locator("[data-sensor-health-overlay]");
+    await expect(overlay).toBeHidden();
+
+    await page.locator(".hamburger").click();
+    await page.getByRole("button", { name: "Sensors" }).click();
+    await expect(overlay).toBeVisible();
+
+    await expect(overlay.locator(".sh-row")).toHaveCount(3);
+    await expect(overlay.locator('.sh-row[data-sensor-id="12FAD"]')).toContainText("WS90");
+    await expect(overlay.locator('.sh-row[data-sensor-id="A0"]')).toContainText("CH2");
+    await expect(overlay.locator('.sh-row[data-sensor-id="C7"]')).toContainText("WH25");
+    // The wired sensor shows N/A, never a percentage.
+    await expect(
+      overlay.locator('.sh-row[data-sensor-id="C7"] .batt-badge'),
+    ).toHaveAttribute("data-battery", "N/A");
+    // Last-seen renders in America/New_York: 20:19Z → 4:19 pm EDT (SC-007).
+    await expect(
+      overlay.locator('.sh-row[data-sensor-id="12FAD"] .sh-lastseen'),
+    ).toContainText("4:19 pm");
+
+    // Closing restores the kiosk view.
+    await overlay.locator(".sh-close").click();
+    await expect(overlay).toBeHidden();
+  });
+});

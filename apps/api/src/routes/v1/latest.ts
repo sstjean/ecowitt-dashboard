@@ -3,6 +3,7 @@ import {
   latestSnapshotSchema,
   liveReadingSnapshotSchema,
   projectLiveReading,
+  SENSOR_HEALTH_DEFAULTS,
   type ConditionIcon,
   type LatestSnapshot,
 } from "@ecowitt/shared";
@@ -11,6 +12,7 @@ import type { ApiConfig } from "../../config.ts";
 import { deriveDaily, deriveBaroTrend, computeAstro, localDayStartIso } from "../../enrich.ts";
 import { resolveConditionIcon, isDaytime, type ConditionState, type NwsClient } from "../../nws.ts";
 import { detectRainFault } from "../../rainFault.ts";
+import { buildSensorHealthEnvelope } from "../../sensorHealth.ts";
 
 const TIME_ZONE = "America/New_York";
 
@@ -85,6 +87,14 @@ export function buildLatestSnapshot(
   const isDay = isDaytime(now, astro.sunriseUtc, astro.sunsetUtc);
   const rainFault = detectRainFault(store.getWindow(rainSince), now, isDay);
 
+  // Per-sensor battery/signal health (Feature 007) rides the same envelope: read
+  // the poller-written single-row snapshot and decide freshness (available/stale).
+  const sensorHealth = buildSensorHealthEnvelope(
+    store.getSensorHealth(),
+    now,
+    SENSOR_HEALTH_DEFAULTS.SENSOR_HEALTH_STALE_SECONDS,
+  );
+
   const latest = store.getLatest();
   if (latest === null) {
     return latestSnapshotSchema.parse({
@@ -98,6 +108,7 @@ export function buildLatestSnapshot(
       conditionText,
       rainSensorSuspect: false,
       rainSensorReason: null,
+      sensorHealth,
       serverTime,
     });
   }
@@ -118,6 +129,7 @@ export function buildLatestSnapshot(
     conditionText,
     rainSensorSuspect: rainFault.rainSensorSuspect,
     rainSensorReason: rainFault.rainSensorReason,
+    sensorHealth,
     serverTime,
   });
 }
