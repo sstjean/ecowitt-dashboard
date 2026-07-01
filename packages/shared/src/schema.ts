@@ -245,7 +245,6 @@ function projectEntry(raw: unknown, capturedAtUtc: string): SensorHealthEntry | 
   const entry = raw as Record<string, unknown>;
   const id = typeof entry.id === "string" ? entry.id : "";
   if (id === "" || PLACEHOLDER_IDS.has(id)) return null; // placeholder / missing id (FR-003)
-  if (entry.idst !== "1") return null; // unregistered (FR-003)
   const type = coerceFinite(entry.type);
   if (type === null) return null; // per-entry salvage: skip malformed (FR-012)
   const typeInt = Math.trunc(type);

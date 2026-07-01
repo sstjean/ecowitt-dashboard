@@ -161,12 +161,34 @@ describe("normalizeSensorHealth — exclusion + per-entry salvage (FR-003/FR-012
     expect(entries.map((e) => e.id)).toEqual(["1242D"]);
   });
 
-  it("excludes an unregistered entry (idst !== '1')", () => {
+  it("registers on id, not idst: a valid-id entry with idst:'0' is INCLUDED", () => {
+    // Real placeholders carry idst:'1'; real registered radios can carry any
+    // idst. Registration MUST key on id (non-placeholder), never on idst.
     const entries = normalizeSensorHealth(
       raw([ws90(), ws90({ id: "AB", idst: "0" })]),
       CAPTURED_AT,
     );
+    expect(entries.map((e) => e.id)).toEqual(["1242D", "AB"]);
+  });
+
+  it("excludes a placeholder id even when idst is '1' (id gate, not idst)", () => {
+    const entries = normalizeSensorHealth(
+      raw([
+        ws90(),
+        { img: "wh85", type: "49", name: "P", id: "FFFFFFFF", batt: "9", rssi: "--", signal: "--", idst: "1" },
+      ]),
+      CAPTURED_AT,
+    );
     expect(entries.map((e) => e.id)).toEqual(["1242D"]);
+  });
+
+  it("coerces rssi/signal '--' on a registered entry to null (never NaN/0)", () => {
+    const entries = normalizeSensorHealth(
+      raw([ws90({ rssi: "--", signal: "--" })]),
+      CAPTURED_AT,
+    );
+    expect(first(entries).rssiDbm).toBeNull();
+    expect(first(entries).signalBars).toBeNull();
   });
 
   it("excludes an entry with a missing/empty id", () => {

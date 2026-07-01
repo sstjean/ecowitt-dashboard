@@ -73,13 +73,13 @@ Four-workspace monorepo (web application): `packages/shared/`, `apps/poller/`, `
 
 ### Tests for User Story 2 (Red first) ⚠️
 
-- [ ] T012 [US2] Author the failing registration/coercion assertions in [packages/shared/tests/sensorHealth.test.ts](../../packages/shared/tests/sensorHealth.test.ts): a placeholder row `id:"FFFFFFFF", idst:"1"` is **excluded** (registered keyed on `id`, not `idst`); the real merged projection equals exactly `{WS90 1242D, wh31 A0}` with zero placeholder ids; WS90 (`batt 5, signal 4, rssi -76`) → `battery OK`, `signalBars 4`, `rssiDbm -76`; `wh31` CH2 (`batt 0`) → `battery OK` (flag 0, never "0% empty"); any `rssi:"--"`/`signal:"--"` → `null` (never `NaN`/`0`); an entry with a non-numeric `type` is skipped while siblings survive (per-entry salvage).
-- [ ] T013 [US2] **Red gate**: run `npm run -w packages/shared test`; confirm the `id`-vs-`idst` and `"--"→null` assertions **FAIL** against the current `idst === "1"` gate. Do not proceed until Red is observed.
+- [X] T012 [US2] Author the failing registration/coercion assertions in [packages/shared/tests/sensorHealth.test.ts](../../packages/shared/tests/sensorHealth.test.ts): a placeholder row `id:"FFFFFFFF", idst:"1"` is **excluded** (registered keyed on `id`, not `idst`); the real merged projection equals exactly `{WS90 1242D, wh31 A0}` with zero placeholder ids; WS90 (`batt 5, signal 4, rssi -76`) → `battery OK`, `signalBars 4`, `rssiDbm -76`; `wh31` CH2 (`batt 0`) → `battery OK` (flag 0, never "0% empty"); any `rssi:"--"`/`signal:"--"` → `null` (never `NaN`/`0`); an entry with a non-numeric `type` is skipped while siblings survive (per-entry salvage).
+- [X] T013 [US2] **Red gate**: run `npm run -w packages/shared test`; confirm the `id`-vs-`idst` and `"--"→null` assertions **FAIL** against the current `idst === "1"` gate. Do not proceed until Red is observed.
 
 ### Implementation for User Story 2 (Green)
 
-- [ ] T014 [US2] In [packages/shared/src/schema.ts](../../packages/shared/src/schema.ts), make placeholder-exclusion (`id ∉ {FFFFFFFF, FFFFFFFE} ∧ id ≠ ""`) the **only** registration test and delete the `idst === "1"` gate; ensure the `coerceFinite`/`coerceBars` `"--"→null` path is exercised by the placeholder rows; keep the per-type battery rules intact (type 48 `≤1 ⇒ Low` else `OK`, null ⇒ `Unknown`; type 7 `0 ⇒ OK` / `1 ⇒ Low`; unknown ⇒ `Unknown`).
-- [ ] T015 [US2] **Green gate**: re-run `npm run -w packages/shared test`; confirm the projected set is exactly `{1242D, A0}` and all coercion/battery assertions pass with the tests unmodified since Red.
+- [X] T014 [US2] In [packages/shared/src/schema.ts](../../packages/shared/src/schema.ts), make placeholder-exclusion (`id ∉ {FFFFFFFF, FFFFFFFE} ∧ id ≠ ""`) the **only** registration test and delete the `idst === "1"` gate; ensure the `coerceFinite`/`coerceBars` `"--"→null` path is exercised by the placeholder rows; keep the per-type battery rules intact (type 48 `≤1 ⇒ Low` else `OK`, null ⇒ `Unknown`; type 7 `0 ⇒ OK` / `1 ⇒ Low`; unknown ⇒ `Unknown`).
+- [X] T015 [US2] **Green gate**: re-run `npm run -w packages/shared test`; confirm the projected set is exactly `{1242D, A0}` and all coercion/battery assertions pass with the tests unmodified since Red.
 
 **Checkpoint**: The served health set is *correct* — exactly the two real radios, honest signal/battery, zero placeholders.
 
