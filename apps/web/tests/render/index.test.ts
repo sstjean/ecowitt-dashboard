@@ -127,14 +127,22 @@ describe("renderSnapshot", () => {
     renderSnapshot(snap, root);
     const fault = root.querySelector("[data-panel='rain'] [data-rain-fault]");
     expect(fault).not.toBeNull();
+    expect(fault?.classList.contains("rain-fault-overlay")).toBe(true);
     expect(
       root.querySelector("[data-panel='rain'] [data-rain-fault-reason]")?.textContent,
     ).toBe(reason);
+    // The card body behind the overlay is dimmed.
+    expect(
+      root.querySelector("[data-panel='rain'] .rain-body")?.classList.contains("dimmed"),
+    ).toBe(true);
   });
 
   it("shows no fault indicator on the rainfall card when the envelope is not suspect", () => {
     renderSnapshot(okSnap(reading({ rainDailyIn: 0, isRaining: false })), root);
     expect(root.querySelector("[data-panel='rain'] [data-rain-fault]")).toBeNull();
+    expect(
+      root.querySelector("[data-panel='rain'] .rain-body")?.classList.contains("dimmed"),
+    ).toBe(false);
   });
 });
 
