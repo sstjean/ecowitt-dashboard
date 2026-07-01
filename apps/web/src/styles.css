@@ -1062,7 +1062,11 @@ body {
     font-size: 16px;
   }
   .moon {
-    right: 32px;
+    /* Anchor top-left (matching the base rule); without right:auto the base
+       left:6px + this right stretched the box full-width and centred the icon
+       over the arc apex. top:-99px lands it just below the title. */
+    left: 6px;
+    right: auto;
     top: -99px;
   }
   .moon .moon-icon {
