@@ -52,7 +52,7 @@ async function fetchSensorsPage(
       return { ok: false, error: `HTTP ${res.status}` };
     }
     const body = (await res.json()) as RawSensorsInfo;
-    return { ok: true, data: body.command[0].sensor };
+    return { ok: true, data: body.command[0]!.sensor };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {

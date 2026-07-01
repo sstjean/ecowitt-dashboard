@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import Database from "better-sqlite3";
 import { openWriteStore, type WriteStore } from "../src/store.ts";
 import { runPollCycle } from "../src/poll.ts";
 
@@ -21,6 +22,33 @@ function errorFetch(status: number): typeof fetch {
     status,
     json: async () => ({}),
   })) as unknown as typeof fetch;
+}
+
+function sensorsFixture(name: string): unknown {
+  const url = new URL(`./fixtures/sensorsInfo/${name}`, import.meta.url);
+  return JSON.parse(readFileSync(url, "utf8"));
+}
+const page1 = sensorsFixture("page1.json");
+const page2 = sensorsFixture("page2.json");
+
+/**
+ * Fetch stub for a full poll cycle: routes `get_livedata_info` to a readings
+ * body and `get_sensors_info?page=N` to the static page fixtures (or a caller
+ * override). Never touches a live gateway.
+ */
+function stackFetch(opts: {
+  livedata: unknown;
+  sensors?: unknown; // override the sensors response body (default: page fixtures)
+  sensorsStatus?: number; // non-2xx to fail the health fetch
+}): typeof fetch {
+  return (async (url: string) => {
+    if (url.includes("get_livedata_info")) {
+      return { ok: true, status: 200, json: async () => opts.livedata };
+    }
+    const status = opts.sensorsStatus ?? 200;
+    const body = opts.sensors ?? (url.includes("page=2") ? page2 : page1);
+    return { ok: status >= 200 && status < 300, status, json: async () => body };
+  }) as unknown as typeof fetch;
 }
 
 function validPayload(): unknown {
@@ -71,7 +99,7 @@ describe("runPollCycle", () => {
     const reading = await runPollCycle({
       baseUrl: "http://gw.local",
       timeoutMs: 5000,
-      fetchImpl: okFetch(validPayload()),
+      fetchImpl: stackFetch({ livedata: validPayload() }),
       store,
       now: () => new Date("2026-06-21T15:30:00Z"),
       onError: (e) => errors.push(e),
@@ -109,5 +137,117 @@ describe("runPollCycle", () => {
 
     expect(reading).toBeNull();
     expect(errors).toHaveLength(1);
+  });
+});
+
+describe("runPollCycle sensor health (US1 + US4)", () => {
+  const NOW = new Date("2026-06-30T14:05:00Z");
+  const CAPTURED = NOW.toISOString();
+
+  function healthRow(): { captured_at: string; sensors_json: string } | undefined {
+    const db = new Database(join(dir, "readings.db"), { readonly: true });
+    const row = db
+      .prepare("SELECT captured_at, sensors_json FROM sensor_health WHERE id = 1")
+      .get() as { captured_at: string; sensors_json: string } | undefined;
+    db.close();
+    return row;
+  }
+
+  it("fetches, normalizes, and upserts sensor health on a healthy cycle", async () => {
+    const errors: string[] = [];
+    const reading = await runPollCycle({
+      baseUrl: "http://gw.local",
+      timeoutMs: 5000,
+      fetchImpl: stackFetch({ livedata: validPayload() }),
+      store,
+      now: () => NOW,
+      onError: (e) => errors.push(e),
+    });
+
+    expect(reading?.outdoorTempF).toBe(72.4);
+    expect(errors).toEqual([]);
+    const row = healthRow();
+    expect(row?.captured_at).toBe(CAPTURED);
+    const sensors = JSON.parse(row!.sensors_json) as Array<{ id: string }>;
+    expect(sensors.map((s) => s.id)).toEqual(["12FAD", "A0", "C7"]);
+  });
+
+  it("skips the health upsert but still ingests readings when the health fetch fails", async () => {
+    const errors: string[] = [];
+    const reading = await runPollCycle({
+      baseUrl: "http://gw.local",
+      timeoutMs: 5000,
+      fetchImpl: stackFetch({ livedata: validPayload(), sensorsStatus: 503 }),
+      store,
+      now: () => NOW,
+      onError: (e) => errors.push(e),
+    });
+
+    expect(reading?.outdoorTempF).toBe(72.4); // readings unaffected
+    expect(errors).toEqual(["HTTP 503"]); // health failure reported via onError only
+    expect(healthRow()).toBeUndefined(); // no upsert
+  });
+
+  it("skips the upsert (no error) when normalization yields no registered sensors", async () => {
+    const errors: string[] = [];
+    const placeholdersOnly = {
+      command: [
+        {
+          sensor: [
+            { img: "wh57", type: "18", name: "P", id: "FFFFFFFE", batt: "0", idst: "0" },
+          ],
+        },
+      ],
+    };
+    const reading = await runPollCycle({
+      baseUrl: "http://gw.local",
+      timeoutMs: 5000,
+      fetchImpl: stackFetch({ livedata: validPayload(), sensors: placeholdersOnly }),
+      store,
+      now: () => NOW,
+      onError: (e) => errors.push(e),
+    });
+
+    expect(reading?.outdoorTempF).toBe(72.4);
+    expect(errors).toEqual([]);
+    expect(healthRow()).toBeUndefined();
+  });
+
+  it("isolates a health-persist failure — never propagates, readings untouched", async () => {
+    const errors: string[] = [];
+    const throwingStore: WriteStore = {
+      insertReading: (observedAt, metrics) => store.insertReading(observedAt, metrics),
+      upsertSensorHealth: () => {
+        throw new Error("disk full");
+      },
+      close: () => {},
+    };
+    const reading = await runPollCycle({
+      baseUrl: "http://gw.local",
+      timeoutMs: 5000,
+      fetchImpl: stackFetch({ livedata: validPayload() }),
+      store: throwingStore,
+      now: () => NOW,
+      onError: (e) => errors.push(e),
+    });
+
+    expect(reading?.outdoorTempF).toBe(72.4); // readings ingested before the throw
+    expect(errors.some((e) => e.includes("disk full"))).toBe(true);
+  });
+
+  it("does not fetch health when the readings fetch fails (no duplicate error)", async () => {
+    const errors: string[] = [];
+    const reading = await runPollCycle({
+      baseUrl: "http://gw.local",
+      timeoutMs: 5000,
+      fetchImpl: errorFetch(503),
+      store,
+      now: () => NOW,
+      onError: (e) => errors.push(e),
+    });
+
+    expect(reading).toBeNull();
+    expect(errors).toEqual(["HTTP 503"]); // exactly one error, not two
+    expect(healthRow()).toBeUndefined();
   });
 });

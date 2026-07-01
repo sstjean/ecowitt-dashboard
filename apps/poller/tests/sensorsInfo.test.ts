@@ -25,7 +25,7 @@ function pagesFetch(
 
 function sensorIds(data: unknown): string[] {
   const sensors = (data as { command: Array<{ sensor: Array<{ id: string }> }> })
-    .command[0].sensor;
+    .command[0]!.sensor;
   return sensors.map((s) => s.id);
 }
 
@@ -59,16 +59,25 @@ describe("fetchSensorsInfo", () => {
     expect(sensorIds(result.data)).toEqual(["12FAD", "A0", "C7", "FFFFFFFE"]);
   });
 
-  it("fails (no throw) when page 1 times out (AbortError)", async () => {
-    const fetchImpl = (async () => {
-      const err = new Error("The operation was aborted");
-      err.name = "AbortError";
-      throw err;
-    }) as unknown as typeof fetch;
-    const result = await fetchSensorsInfo(BASE, 5000, fetchImpl);
+  it("aborts and fails fast when page 1 hangs past the timeout", async () => {
+    const hang = ((_url: string, init?: { signal?: AbortSignal }): Promise<Response> =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted", "AbortError"));
+        });
+      })) as unknown as typeof fetch;
+    const result = await fetchSensorsInfo(BASE, 5, hang);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toMatch(/abort/i);
+  });
+
+  it("fails cleanly when the fetch rejects with a non-Error value", async () => {
+    const fetchImpl = (async () => {
+      throw "kaboom"; // non-Error rejection
+    }) as unknown as typeof fetch;
+    const result = await fetchSensorsInfo(BASE, 5000, fetchImpl);
+    expect(result).toEqual({ ok: false, error: "kaboom" });
   });
 
   it("fails on a non-2xx status", async () => {

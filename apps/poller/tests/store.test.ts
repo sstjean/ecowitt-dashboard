@@ -137,10 +137,10 @@ describe("upsertSensorHealth", () => {
     db.close();
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).toBe(1);
-    expect(rows[0].captured_at).toBe("2026-06-30T14:10:00Z");
-    const parsed = JSON.parse(rows[0].sensors_json) as SensorHealthEntry[];
-    expect(parsed[0].id).toBe("A0");
+    expect(rows[0]!.id).toBe(1);
+    expect(rows[0]!.captured_at).toBe("2026-06-30T14:10:00Z");
+    const parsed = JSON.parse(rows[0]!.sensors_json) as SensorHealthEntry[];
+    expect(parsed[0]!.id).toBe("A0");
   });
 
   it("bootstrap is idempotent (reopening the store is safe)", () => {
