@@ -93,16 +93,16 @@ Four-workspace monorepo (web application): `packages/shared/`, `apps/poller/`, `
 
 ### Tests for User Story 3 (Red first) ⚠️
 
-- [ ] T016 [P] [US3] Correct/author the failing card-map tests in [apps/web/tests/sensorCardMap.test.ts](../../apps/web/tests/sensorCardMap.test.ts): outdoor/solar/rain → WS90 `1242D`; indoor and baro **absent** from the map (no binding); no `C7`/`wh25` entry exists — replacing the fabricated `12FAD`/`C7` assertions at authoring time.
-- [ ] T017 [P] [US3] Correct/author the failing render assertions in [apps/web/tests/sensorIndicator.test.ts](../../apps/web/tests/sensorIndicator.test.ts) and [apps/web/tests/sensorHealthPage.test.ts](../../apps/web/tests/sensorHealthPage.test.ts): a card with **no** backing sensor (indoor/baro) renders **no** radio/battery indicator; `wh31` CH2 (`A0`) appears on the Sensor Health page; no fabricated `wh25`/`C7` row is rendered.
-- [ ] T018 [US3] Update the `sensorHealth` blocks in [apps/web/e2e/fixtures.ts](../../apps/web/e2e/fixtures.ts) to reflect WS90 (`1242D`) + `wh31` (`A0`) only and remove the `C7`/`wh25` health row (authoring-time fixture correction).
-- [ ] T019 [US3] **Red gate**: run `npm run -w apps/web test`; confirm the card-map and indicator tests **FAIL** against the current `12FAD`/`C7` mapping. Do not proceed until Red is observed.
+- [X] T016 [P] [US3] Correct/author the failing card-map tests in [apps/web/tests/sensorCardMap.test.ts](../../apps/web/tests/sensorCardMap.test.ts): outdoor/solar/rain → WS90 `1242D`; indoor and baro **absent** from the map (no binding); no `C7`/`wh25` entry exists — replacing the fabricated `12FAD`/`C7` assertions at authoring time.
+- [X] T017 [P] [US3] Correct/author the failing render assertions in [apps/web/tests/sensorIndicator.test.ts](../../apps/web/tests/sensorIndicator.test.ts) and [apps/web/tests/sensorHealthPage.test.ts](../../apps/web/tests/sensorHealthPage.test.ts): a card with **no** backing sensor (indoor/baro) renders **no** radio/battery indicator; `wh31` CH2 (`A0`) appears on the Sensor Health page; no fabricated `wh25`/`C7` row is rendered.
+- [X] T018 [US3] Update the `sensorHealth` blocks in [apps/web/e2e/fixtures.ts](../../apps/web/e2e/fixtures.ts) to reflect WS90 (`1242D`) + `wh31` (`A0`) only and remove the `C7`/`wh25` health row (authoring-time fixture correction).
+- [X] T019 [US3] **Red gate**: run `npm run -w apps/web test`; confirm the card-map and indicator tests **FAIL** against the current `12FAD`/`C7` mapping. Do not proceed until Red is observed.
 
 ### Implementation for User Story 3 (Green)
 
-- [ ] T020 [US3] In [apps/web/src/sensorCardMap.ts](../../apps/web/src/sensorCardMap.ts), bind outdoor/solar/rain → WS90 `1242D` and remove the indoor/baro (`C7`/`wh25`) entries so those cards have no backing sensor.
-- [ ] T021 [US3] Verify [apps/web/src/render/index.ts](../../apps/web/src/render/index.ts) (`attachCardIndicators` skips any card absent from the map → no indicator) and [apps/web/src/render/sensorIndicator.ts](../../apps/web/src/render/sensorIndicator.ts) (no fabricated radio indicator for wired/absent cards); if the type-4 `N/A` battery rule is now an uncovered dead path, remove it rather than adding a fake test (keep 100% coverage honest).
-- [ ] T022 [US3] **Green gate**: re-run `npm run -w apps/web test`; confirm all US3 tests pass with the tests unmodified since Red.
+- [X] T020 [US3] In [apps/web/src/sensorCardMap.ts](../../apps/web/src/sensorCardMap.ts), bind outdoor/solar/rain → WS90 `1242D` and remove the indoor/baro (`C7`/`wh25`) entries so those cards have no backing sensor.
+- [X] T021 [US3] Verify [apps/web/src/render/index.ts](../../apps/web/src/render/index.ts) (`attachCardIndicators` skips any card absent from the map → no indicator) and [apps/web/src/render/sensorIndicator.ts](../../apps/web/src/render/sensorIndicator.ts) (no fabricated radio indicator for wired/absent cards); if the type-4 `N/A` battery rule is now an uncovered dead path, remove it rather than adding a fake test (keep 100% coverage honest).
+- [X] T022 [US3] **Green gate**: re-run `npm run -w apps/web test`; confirm all US3 tests pass with the tests unmodified since Red.
 
 **Checkpoint**: The UI is honest — real WS90 binding on outdoor/solar/rain, no radio indicator on indoor/baro, no invented `wh25` anywhere.
 

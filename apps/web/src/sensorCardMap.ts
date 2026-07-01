@@ -3,10 +3,11 @@
  * wiring of cards to sensors is fixed and known, so a small static table is the
  * simplest sufficient design (research D4):
  *
- * - The single WS90 (`12FAD`) drives the outdoor/solar/rain cards, so all three
+ * - The single WS90 (`1242D`) drives the outdoor/solar/rain cards, so all three
  *   reflect **one** radio's health — never three independent radios.
- * - The wired wh25 (`C7`) backs the indoor + barometer cards with **no** radio
- *   indicator (N/A battery, no signal strip).
+ * - Indoor and barometer have **no** backing `get_sensors_info` radio: the wired
+ *   wh25 is reported only in `get_livedata_info`, so those cards are absent from
+ *   this map and render **no** radio/battery indicator (honest absence).
  * - The wh31 CH2 (`A0`) has no dashboard card today; it appears only on the US3
  *   Sensor Health page.
  */
@@ -20,9 +21,7 @@ export interface CardSensorBinding {
 }
 
 export const sensorCardMap: readonly CardSensorBinding[] = [
-  { panel: "outdoor", sensorId: "12FAD", radio: true },
-  { panel: "solar", sensorId: "12FAD", radio: true },
-  { panel: "rain", sensorId: "12FAD", radio: true },
-  { panel: "indoor", sensorId: "C7", radio: false },
-  { panel: "baro", sensorId: "C7", radio: false },
+  { panel: "outdoor", sensorId: "1242D", radio: true },
+  { panel: "solar", sensorId: "1242D", radio: true },
+  { panel: "rain", sensorId: "1242D", radio: true },
 ];

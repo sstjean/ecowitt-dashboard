@@ -4,7 +4,7 @@ import { createSensorHealthPage } from "../src/render/sensorHealthPage.ts";
 
 function entry(over: Partial<SensorHealthEntry> = {}): SensorHealthEntry {
   return {
-    id: "12FAD",
+    id: "1242D",
     img: "wh90",
     type: 48,
     name: "WS90",
@@ -25,7 +25,6 @@ const freshHealth: SensorHealth = {
   sensors: [
     entry(),
     entry({ id: "A0", img: "wh31", type: 7, name: "CH2", battery: "OK", batteryRaw: 0, signalBars: 4, rssiDbm: -96 }),
-    entry({ id: "C7", img: "wh25", type: 4, name: "WH25", battery: "N/A", batteryRaw: 0, signalBars: null, rssiDbm: null }),
   ],
 };
 
@@ -49,9 +48,9 @@ describe("createSensorHealthPage", () => {
 
   it("lists one row per registered sensor with name/model, battery, signal+rssi and last-seen", () => {
     page.update(freshHealth);
-    expect(rows()).toHaveLength(3);
+    expect(rows()).toHaveLength(2);
 
-    const ws90 = rowFor("12FAD");
+    const ws90 = rowFor("1242D");
     expect(ws90.querySelector(".sh-name")?.textContent).toContain("WS90");
     expect(ws90.querySelector(".sh-model")?.textContent).toContain("wh90");
     expect(ws90.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("OK");
@@ -59,14 +58,25 @@ describe("createSensorHealthPage", () => {
     expect(ws90.querySelector(".sh-rssi")?.textContent).toContain("-74");
   });
 
-  it("renders N/A for the wired wh25 with no radio strip (never empty bars or '0%')", () => {
+  it("lists the wh31 CH2 (A0) on the health page", () => {
     page.update(freshHealth);
-    const wired = rowFor("C7");
-    expect(wired.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("N/A");
-    // No four-bar strip that could misread as a live "0 of 4"; and no percentage.
-    expect(wired.querySelectorAll(".sig-bar")).toHaveLength(0);
-    expect(wired.querySelector(".sig-bars")?.getAttribute("data-signal-bars")).toBe("na");
-    expect(wired.textContent ?? "").not.toMatch(/%/);
+    const ch2 = rowFor("A0");
+    expect(ch2.querySelector(".sh-name")?.textContent).toContain("CH2");
+    expect(ch2.querySelector(".sh-model")?.textContent).toContain("wh31");
+    expect(ch2.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("OK");
+  });
+
+  it("renders a no-radio state (no bars, no rssi, no '%') for a registered sensor with null signal/rssi", () => {
+    page.update({
+      ...freshHealth,
+      sensors: [entry({ signalBars: null, rssiDbm: null, battery: "Unknown" })],
+    });
+    const row = rowFor("1242D");
+    // No four-bar strip that could misread as a live "0 of 4"; no rssi; no percentage.
+    expect(row.querySelectorAll(".sig-bar")).toHaveLength(0);
+    expect(row.querySelector(".sig-bars")?.getAttribute("data-signal-bars")).toBe("na");
+    expect(row.querySelector(".sh-rssi")).toBeNull();
+    expect(row.textContent ?? "").not.toMatch(/%/);
   });
 
   it("renders a distinct Low-battery cue (never '0%')", () => {
@@ -74,14 +84,14 @@ describe("createSensorHealthPage", () => {
       ...freshHealth,
       sensors: [entry({ battery: "Low", batteryRaw: 1 })],
     });
-    const badge = rowFor("12FAD").querySelector(".batt-badge")!;
+    const badge = rowFor("1242D").querySelector(".batt-badge")!;
     expect(badge.classList.contains("batt-low")).toBe(true);
     expect(badge.textContent ?? "").not.toMatch(/%/);
   });
 
   it("renders a lost-link state (0 lit bars) for a registered sensor reporting 0 signal", () => {
     page.update({ ...freshHealth, sensors: [entry({ signalBars: 0 })] });
-    const strip = rowFor("12FAD").querySelector(".sig-bars")!;
+    const strip = rowFor("1242D").querySelector(".sig-bars")!;
     expect(strip.querySelectorAll(".sig-bar.on")).toHaveLength(0);
     expect(strip.querySelectorAll(".sig-bar.off")).toHaveLength(4);
   });
@@ -110,7 +120,7 @@ describe("createSensorHealthPage", () => {
 
   it("re-renders when the registered set changes (FR-015)", () => {
     page.update(freshHealth);
-    expect(rows()).toHaveLength(3);
+    expect(rows()).toHaveLength(2);
     page.update({ ...freshHealth, sensors: [entry()] });
     expect(rows()).toHaveLength(1);
     expect(rowFor("A0")).toBeNull();
