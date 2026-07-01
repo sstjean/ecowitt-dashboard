@@ -187,6 +187,100 @@ export const sensorHealthSchema = z.strictObject({
 });
 export type SensorHealth = z.infer<typeof sensorHealthSchema>;
 
+/** Radio ids the gateway reports for unpaired slots — always excluded. */
+const PLACEHOLDER_IDS = new Set(["FFFFFFFF", "FFFFFFFE"]);
+
+type Battery = SensorHealthEntry["battery"];
+
+/** Coerce a raw string field to a finite number, or null when absent/non-numeric. */
+function coerceFinite(v: unknown): number | null {
+  if (typeof v !== "string") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Coerce a raw signal field to an integer bar count clamped 0–4, or null. */
+function coerceBars(v: unknown): number | null {
+  const n = coerceFinite(v);
+  if (n === null) return null;
+  return Math.max(0, Math.min(4, Math.trunc(n)));
+}
+
+/**
+ * Per-sensor-type battery rules (keyed by numeric `type`). SRP: one rule per
+ * known type; the safe fallback (`Unknown`) means an unrecognized sensor never
+ * fabricates a level. WS90's `Low` threshold single-sources from
+ * `SENSOR_HEALTH_DEFAULTS` (no magic number).
+ */
+const SENSOR_BATTERY_RULES: Record<number, (raw: number | null) => Battery> = {
+  48: (raw) =>
+    raw === null
+      ? "Unknown"
+      : raw <= SENSOR_HEALTH_DEFAULTS.WS90_BATTERY_LOW_MAX
+        ? "Low"
+        : "OK",
+  7: (raw) => (raw === 1 ? "Low" : raw === 0 ? "OK" : "Unknown"),
+  4: () => "N/A",
+};
+
+function batteryStatus(type: number, raw: number | null): Battery {
+  const rule = SENSOR_BATTERY_RULES[type];
+  return rule ? rule(raw) : "Unknown";
+}
+
+/** Pull the `sensor` array out of a raw `{ command:[{ sensor:[...] }] }` payload. */
+function extractSensorArray(raw: unknown): unknown[] | null {
+  const command = (raw as { command?: unknown } | null | undefined)?.command;
+  if (!Array.isArray(command) || command.length === 0) return null;
+  const sensor = (command[0] as { sensor?: unknown }).sensor;
+  return Array.isArray(sensor) ? sensor : null;
+}
+
+/** Project one raw entry to a health record, or `null` to exclude/skip it. */
+function projectEntry(raw: unknown, capturedAtUtc: string): SensorHealthEntry | null {
+  const entry = raw as Record<string, unknown>;
+  const id = typeof entry.id === "string" ? entry.id : "";
+  if (id === "" || PLACEHOLDER_IDS.has(id)) return null; // placeholder / missing id (FR-003)
+  if (entry.idst !== "1") return null; // unregistered (FR-003)
+  const type = coerceFinite(entry.type);
+  if (type === null) return null; // per-entry salvage: skip malformed (FR-012)
+  const typeInt = Math.trunc(type);
+  const batteryRaw = coerceFinite(entry.batt);
+  return {
+    id,
+    img: entry.img as string,
+    type: typeInt,
+    name: entry.name as string,
+    battery: batteryStatus(typeInt, batteryRaw),
+    batteryRaw,
+    signalBars: coerceBars(entry.signal),
+    rssiDbm: coerceFinite(entry.rssi),
+    registered: true,
+    lastSeenUtc: capturedAtUtc,
+  };
+}
+
+/**
+ * normalizeSensorHealth — pure projection of a raw (merged) `get_sensors_info`
+ * payload into the served `SensorHealthEntry[]`. No I/O, no clock: `capturedAtUtc`
+ * is passed in and becomes each entry's `lastSeenUtc`. A non-`{command:[{sensor}]}`
+ * payload yields `[]` (whole-payload guard); placeholders and unregistered slots
+ * are excluded; a single malformed entry is skipped without discarding siblings.
+ */
+export function normalizeSensorHealth(
+  raw: unknown,
+  capturedAtUtc: string,
+): SensorHealthEntry[] {
+  const sensors = extractSensorArray(raw);
+  if (sensors === null) return [];
+  const out: SensorHealthEntry[] = [];
+  for (const entry of sensors) {
+    const projected = projectEntry(entry, capturedAtUtc);
+    if (projected !== null) out.push(projected);
+  }
+  return out;
+}
+
 /** LatestSnapshot — the `/api/v1/latest` envelope. */
 export const latestSnapshotSchema = z.strictObject({
   status: z.enum(["ok", "no-data"]),
