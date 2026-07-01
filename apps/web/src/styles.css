@@ -796,10 +796,11 @@ body {
 }
 .moon {
   position: absolute;
-  /* Top-left, below the card title, clear of the Feature 007 sensor indicator
-     that sits in the top-right corner. Same size as before. */
+  /* Top-left, clear below the card title (h3 overlays the arc-wrap top) and
+     above the centre readouts, clear of the top-right sensor indicator.
+     Same size as before. */
   left: 6px;
-  top: 6px;
+  top: 24px;
   text-align: center;
 }
 .moon .moon-icon {
