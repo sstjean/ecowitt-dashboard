@@ -57,6 +57,46 @@ export const latestSnapshot = {
   serverTime: "2026-06-22T20:19:30Z",
 } as const;
 
+/**
+ * Active-rain state: the piezo flag is set and the gauge is trusted, so the
+ * "Raining now" in-column banner must render above the Daily Rain value without
+ * clipping the card. Derived from {@link latestSnapshot}; envelope unchanged.
+ */
+export const rainingSnapshot = {
+  ...latestSnapshot,
+  reading: { ...latestSnapshot.reading, isRaining: true },
+  rainSensorSuspect: false,
+  rainSensorReason: null,
+} as const;
+
+/**
+ * Suspected sensor-fault state: `rainSensorSuspect` is true with a short reason,
+ * so the centered dimming overlay renders and the "Raining now" banner is
+ * suppressed. The reading is dry (a stuck gauge reports no rain).
+ */
+export const faultSnapshot = {
+  ...latestSnapshot,
+  reading: {
+    ...latestSnapshot.reading,
+    isRaining: false,
+    rainRateInHr: 0,
+    rainDailyIn: 0,
+  },
+  rainSensorSuspect: true,
+  rainSensorReason: "Storm signature with no rain measured (gust spike, pressure dip)",
+} as const;
+
+/**
+ * Fault state with a deliberately long, multi-clause reason to exercise the
+ * overlay's internal wrap/clip edge case: the text must wrap or clip inside the
+ * overlay and never grow the fixed-height card.
+ */
+export const longReasonFaultSnapshot = {
+  ...faultSnapshot,
+  rainSensorReason:
+    "Storm signature with no rain measured — a sharp temperature crash, a humidity surge, a sustained gust spike, and a pressure dip all coincided while the piezo gauge reported zero accumulation for the entire event window, strongly suggesting the rain sensor is blocked, frozen, or otherwise not reporting.",
+} as const;
+
 /** The `no-data` envelope: no reading yet, so panels fall back to Missing. */
 export const noDataSnapshot = {
   status: "no-data",
