@@ -154,6 +154,187 @@ body {
   cursor: default;
 }
 
+/* ---------- Sensor health: per-card indicators + overlay (Feature 007) ---------- */
+.sensor-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sig-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+.sig-bar {
+  width: 4px;
+  border-radius: 1px;
+  background: var(--cp-border-strong);
+}
+.sig-bar.on {
+  background: var(--cp-success);
+}
+.sig-bar:nth-child(1) {
+  height: 25%;
+}
+.sig-bar:nth-child(2) {
+  height: 50%;
+}
+.sig-bar:nth-child(3) {
+  height: 75%;
+}
+.sig-bar:nth-child(4) {
+  height: 100%;
+}
+.sig-bars--na {
+  color: var(--cp-text-muted);
+  font-weight: 600;
+  line-height: 16px;
+}
+.batt-badge {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--cp-border);
+  color: var(--cp-text);
+  background: var(--cp-surface-soft);
+  white-space: nowrap;
+}
+.batt-badge.batt-ok {
+  color: var(--cp-success);
+  border-color: var(--cp-success);
+}
+.batt-badge.batt-low {
+  color: var(--cp-accent-fg);
+  background: var(--cp-danger);
+  border-color: var(--cp-danger);
+}
+.batt-badge.batt-unknown {
+  color: var(--cp-text-muted);
+}
+.batt-badge.batt-na {
+  color: var(--cp-text-soft);
+}
+
+/* Sensor Health overlay — hidden by default so the kiosk default layout is
+   byte-for-byte unchanged (single-viewport no-scroll contract). */
+.sensor-health-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  overflow: auto;
+}
+.sensor-health-overlay[hidden] {
+  display: none;
+}
+.sh-panel {
+  margin: auto;
+  width: min(880px, 100%);
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 18px;
+  box-shadow: var(--cp-shadow);
+  padding: 24px 28px;
+}
+.sh-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.sh-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cp-text);
+}
+.sh-close {
+  appearance: none;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-surface-soft);
+  color: var(--cp-text);
+  border-radius: 11px;
+  min-width: 56px;
+  min-height: 52px;
+  font-size: 22px;
+  cursor: pointer;
+}
+.sh-close:hover {
+  background: var(--cp-bg-elevated);
+}
+.sh-empty {
+  color: var(--cp-text-muted);
+  font-size: 20px;
+  padding: 24px 0;
+}
+.sh-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sh-row {
+  display: grid;
+  grid-template-columns: 1.6fr 0.9fr 1.2fr 1.3fr;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--cp-surface-soft);
+  border: 1px solid var(--cp-border);
+  font-size: 20px;
+  color: var(--cp-text);
+}
+.sh-row--stale {
+  opacity: 0.72;
+  border-style: dashed;
+}
+.sh-name {
+  font-weight: 600;
+}
+.sh-model {
+  color: var(--cp-text-muted);
+  font-size: 15px;
+  margin-left: 6px;
+}
+.sh-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sh-rssi {
+  color: var(--cp-text-muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.sh-lastseen {
+  color: var(--cp-text-soft);
+  font-size: 16px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.sh-stale-tag {
+  color: var(--cp-warning);
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+/* A card's indicator sits in the card's top-right corner without disturbing layout
+   (the `.card` rule below already establishes the positioning context). */
+.card > .sensor-indicator {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 2;
+}
+
 /* ---------- Stage: two columns mirroring the reference ---------- */
 .stage {
   display: flex;

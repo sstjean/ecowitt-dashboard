@@ -102,15 +102,17 @@ describe("createHeader", () => {
   it("enlarges the hamburger + nav-item hit areas and font for kiosk legibility", () => {
     // The menu is the access path to the health overlay; per Feature 004 it must
     // be comfortably touch-friendly and legible at wall distance (FR-017).
-    const navBlock = css.match(/\.nav-item\s*\{([^}]*)\}/)![1];
-    const navFont = Number(navBlock.match(/font-size:\s*(\d+)px/)![1]);
-    expect(navFont).toBeGreaterThan(14); // bumped beyond the cramped 14px default
-    const navHit = Number(navBlock.match(/min-height:\s*(\d+)px/)![1]);
-    expect(navHit).toBeGreaterThanOrEqual(52);
+    const pxIn = (block: string | undefined, prop: string): number => {
+      const value = block?.match(new RegExp(`${prop}:\\s*(\\d+)px`))?.[1];
+      if (value === undefined) throw new Error(`${prop} not found in block`);
+      return Number(value);
+    };
+    const navBlock = css.match(/\.nav-item\s*\{([^}]*)\}/)?.[1];
+    expect(pxIn(navBlock, "font-size")).toBeGreaterThan(14); // beyond the cramped 14px default
+    expect(pxIn(navBlock, "min-height")).toBeGreaterThanOrEqual(52);
 
-    const hamburgerBlock = css.match(/\.hamburger\s*\{([^}]*)\}/)![1];
-    const hamburgerW = Number(hamburgerBlock.match(/width:\s*(\d+)px/)![1]);
-    expect(hamburgerW).toBeGreaterThanOrEqual(56); // enlarged touch target beyond 46px
+    const hamburgerBlock = css.match(/\.hamburger\s*\{([^}]*)\}/)?.[1];
+    expect(pxIn(hamburgerBlock, "width")).toBeGreaterThanOrEqual(56); // enlarged beyond 46px
   });
 
   it("toggles the nav open and closed from the hamburger, tracking aria-expanded", () => {
