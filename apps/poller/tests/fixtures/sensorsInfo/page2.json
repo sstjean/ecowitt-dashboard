@@ -1,0 +1,10 @@
+{
+  "command": [
+    {
+      "sensor": [
+        { "img": "wh90", "type": "48", "name": "WS90", "id": "12FAD", "batt": "5", "rssi": "-74", "signal": "4", "idst": "1" },
+        { "img": "wh40", "type": "16", "name": "WH40", "id": "FFFFFFFF", "batt": "0", "rssi": "0", "signal": "0", "idst": "0" }
+      ]
+    }
+  ]
+}
