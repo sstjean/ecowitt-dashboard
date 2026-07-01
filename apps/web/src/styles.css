@@ -796,10 +796,10 @@ body {
 }
 .moon {
   position: absolute;
-  right: 4px;
-  /* Nudged down so the moon clears the Feature 007 per-card sensor indicator
-     that sits in the card's top-right corner (top:12px). */
-  top: 44px;
+  /* Top-left, below the card title, clear of the Feature 007 sensor indicator
+     that sits in the top-right corner. Same size as before. */
+  left: 6px;
+  top: 6px;
   text-align: center;
 }
 .moon .moon-icon {
