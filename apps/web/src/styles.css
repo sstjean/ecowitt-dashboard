@@ -63,9 +63,9 @@ body {
 .hamburger {
   justify-self: start;
   appearance: none;
-  width: 46px;
-  height: 46px;
-  border-radius: 11px;
+  width: 56px;
+  height: 56px;
+  border-radius: 13px;
   border: 1px solid var(--cp-border);
   background: var(--cp-surface);
   color: var(--cp-text);
@@ -84,8 +84,8 @@ body {
   border-radius: 4px;
 }
 .hamburger svg {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
 }
 .h-date {
   justify-self: center;
@@ -109,10 +109,10 @@ body {
 /* ---------- Navigation menu (opened by hamburger) ---------- */
 .h-nav {
   position: fixed;
-  top: 64px;
+  top: 76px;
   left: 16px;
   z-index: 60;
-  width: 224px;
+  width: 260px;
   background: var(--cp-surface);
   border: 1px solid var(--cp-border);
   border-radius: 14px;
@@ -131,10 +131,10 @@ body {
   background: transparent;
   color: var(--cp-text);
   border-radius: 9px;
-  padding: 12px;
-  min-height: 44px;
+  padding: 14px 16px;
+  min-height: 52px;
   font: inherit;
-  font-size: 14px;
+  font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
