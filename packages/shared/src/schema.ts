@@ -136,6 +136,57 @@ export const conditionIconSchema = z.enum([
 ]);
 export type ConditionIcon = z.infer<typeof conditionIconSchema>;
 
+// ---------------------------------------------------------------------------
+// Sensor battery & signal health (Feature 007). Additive contract surface: the
+// per-sensor projection, the freshness-wrapped envelope object, and the tunable
+// thresholds. `latestSnapshotSchema` gains the required `sensorHealth` field in
+// a separate atomic step (US1a) so the additive change here stays non-breaking.
+// ---------------------------------------------------------------------------
+
+/**
+ * Tunable named constants for sensor-health normalization + freshness. No magic
+ * numbers: the poller (normalizer) and API (staleness) both single-source here.
+ */
+export const SENSOR_HEALTH_DEFAULTS = {
+  /** WS90 (type 48) battery level ≤ this (of 5) ⇒ `Low`. */
+  WS90_BATTERY_LOW_MAX: 1,
+  /** Envelope `stale` threshold: a snapshot older than this (seconds) is stale. */
+  SENSOR_HEALTH_STALE_SECONDS: 300,
+} as const;
+
+/**
+ * SensorHealthEntry — the normalized per-registered-sensor health projection.
+ * Strict: the poller writes exactly these fields and the web renders them
+ * verbatim. `battery` is a rendered enum (never a raw "0%"); wired sensors
+ * project `N/A` battery with null `signalBars`/`rssiDbm`.
+ */
+export const sensorHealthEntrySchema = z.strictObject({
+  id: z.string().min(1),
+  img: z.string().min(1),
+  type: z.number().int(),
+  name: z.string().min(1),
+  battery: z.enum(["OK", "Low", "Unknown", "N/A"]),
+  batteryRaw: z.union([finite(), z.null()]),
+  signalBars: z.union([z.number().int().min(0).max(4), z.null()]),
+  rssiDbm: z.union([finite(), z.null()]),
+  registered: z.boolean(),
+  lastSeenUtc: isoUtc(),
+});
+export type SensorHealthEntry = z.infer<typeof sensorHealthEntrySchema>;
+
+/**
+ * sensorHealth — the freshness-wrapped envelope object merged onto
+ * `/api/v1/latest`. `available:false`/`stale:true` with an empty `sensors`
+ * array is the honest-degradation state (no snapshot / cloud source / cold).
+ */
+export const sensorHealthSchema = z.strictObject({
+  available: z.boolean(),
+  stale: z.boolean(),
+  capturedAtUtc: z.union([isoUtc(), z.null()]),
+  sensors: z.array(sensorHealthEntrySchema),
+});
+export type SensorHealth = z.infer<typeof sensorHealthSchema>;
+
 /** LatestSnapshot — the `/api/v1/latest` envelope. */
 export const latestSnapshotSchema = z.strictObject({
   status: z.enum(["ok", "no-data"]),
