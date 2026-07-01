@@ -272,6 +272,19 @@ describe("per-card sensor indicators (US2)", () => {
     }
   });
 
+  it("degrades a mapped card to Unknown when its sensor is absent from a fresh set", () => {
+    // The WS90 is registered but momentarily missing from this fresh snapshot's
+    // sensors[] (e.g. it dropped from get_sensors_info that cycle) → the card's
+    // find() misses and the indicator honestly degrades to Unknown, never a
+    // fabricated reading.
+    const snap = okSnap();
+    snap.sensorHealth = { available: true, stale: false, capturedAtUtc: "2026-06-22T20:19:00Z", sensors: [] };
+    renderSnapshot(snap, root);
+    const ind = root.querySelector<HTMLElement>(`[data-panel="solar"] > .sensor-indicator`)!;
+    expect(ind.getAttribute("data-sensor-indicator")).toBe("unknown");
+    expect(ind.querySelector(".batt-badge")?.getAttribute("data-battery")).toBe("Unknown");
+  });
+
   it("renders Unknown indicators when the health envelope is stale", () => {
     const snap = okSnap();
     snap.sensorHealth = { ...health, stale: true };

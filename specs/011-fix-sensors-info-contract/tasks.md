@@ -112,10 +112,10 @@ Four-workspace monorepo (web application): `packages/shared/`, `apps/poller/`, `
 
 **Purpose**: Prove the fix holds the 100% coverage / typecheck / e2e gates, then rebuild and ship all three amd64 images and verify live on the real gateway.
 
-- [ ] T023 [P] Re-verify `apps/api` is unaffected by the corrected fixtures: run `npm run -w apps/api test:coverage` and confirm [apps/api/tests/sensorHealth.test.ts](../../apps/api/tests/sensorHealth.test.ts) still passes with the `/api/v1/latest` envelope and `SensorHealthEntry` output type **unchanged**.
-- [ ] T024 Coverage gate — run `npm run -w packages/shared test:coverage`, `npm run -w apps/poller test:coverage`, and `npm run -w apps/web test:coverage`; confirm **100%** statements/branches/functions/lines on all three. Remove any dead uncovered code (e.g., the now-unused type-4 `N/A` rule) rather than adding a fake test.
-- [ ] T025 Run `npm run typecheck` at the repo root; confirm all four workspaces type-check clean.
-- [ ] T026 Run `npm run -w apps/web e2e` (Playwright); confirm green — Sensor Health page shows WS90 + `wh31` CH2, indoor/baro show no radio indicator, and no `wh25`/`C7` row appears in [apps/web/e2e/dashboard.spec.ts](../../apps/web/e2e/dashboard.spec.ts) / [apps/web/e2e/kiosk.spec.ts](../../apps/web/e2e/kiosk.spec.ts).
+- [X] T023 [P] Re-verify `apps/api` is unaffected by the corrected fixtures: run `npm run -w apps/api test:coverage` and confirm [apps/api/tests/sensorHealth.test.ts](../../apps/api/tests/sensorHealth.test.ts) still passes with the `/api/v1/latest` envelope and `SensorHealthEntry` output type **unchanged**.
+- [X] T024 Coverage gate — run `npm run -w packages/shared test:coverage`, `npm run -w apps/poller test:coverage`, and `npm run -w apps/web test:coverage`; confirm **100%** statements/branches/functions/lines on all three. Remove any dead uncovered code (e.g., the now-unused type-4 `N/A` rule) rather than adding a fake test.
+- [X] T025 Run `npm run typecheck` at the repo root; confirm all four workspaces type-check clean.
+- [X] T026 Run `npm run -w apps/web e2e` (Playwright); confirm green — Sensor Health page shows WS90 + `wh31` CH2, indoor/baro show no radio indicator, and no `wh25`/`C7` row appears in [apps/web/e2e/dashboard.spec.ts](../../apps/web/e2e/dashboard.spec.ts) / [apps/web/e2e/kiosk.spec.ts](../../apps/web/e2e/kiosk.spec.ts).
 - [ ] T027 Build the three amd64 images (web + api + poller) from their repo Dockerfiles with immutable tags per the ship-images runbook (`/memories/repo/prod-deploy.md`).
 - [ ] T028 Ship the three images to prod `192.168.10.5:8090` and restart the stack per the ship-images runbook.
 - [ ] T029 Live-verify the served health: `curl -s http://192.168.10.5:8090/api/v1/latest | jq '.sensorHealth | {available, stale, ids: [.sensors[].id]}'`; expect `{"available":true,"stale":false,"ids":["1242D","A0"]}`.
