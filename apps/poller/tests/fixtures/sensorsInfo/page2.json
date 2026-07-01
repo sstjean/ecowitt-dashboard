@@ -1,10 +1,1 @@
-{
-  "command": [
-    {
-      "sensor": [
-        { "img": "wh90", "type": "48", "name": "WS90", "id": "12FAD", "batt": "5", "rssi": "-74", "signal": "4", "idst": "1" },
-        { "img": "wh40", "type": "16", "name": "WH40", "id": "FFFFFFFF", "batt": "0", "rssi": "0", "signal": "0", "idst": "0" }
-      ]
-    }
-  ]
-}
+[{"img":"wh55","type":"27","name":"Leak CH1","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh55","type":"28","name":"Leak CH2","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh55","type":"29","name":"Leak CH3","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh55","type":"30","name":"Leak CH4","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh31","type":"6","name":"Temp & Humidity CH1","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh31","type":"7","name":"Temp & Humidity CH2","id":"A0","batt":"0","rssi":"-94","signal":"4","idst":"1"},{"img":"wh31","type":"8","name":"Temp & Humidity CH3","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh31","type":"9","name":"Temp & Humidity CH4","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh31","type":"10","name":"Temp & Humidity CH5","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh31","type":"11","name":"Temp & Humidity CH6","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh31","type":"12","name":"Temp & Humidity CH7","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh31","type":"13","name":"Temp & Humidity CH8","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh54","type":"66","name":"Lds CH1","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh54","type":"67","name":"Lds CH2","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh54","type":"68","name":"Lds CH3","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"},{"img":"wh54","type":"69","name":"Lds CH4","id":"FFFFFFFF","batt":"9","rssi":"--","signal":"--","idst":"1"}]
