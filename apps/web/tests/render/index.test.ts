@@ -170,3 +170,60 @@ describe("mountDashboard", () => {
     expect(root.querySelector(".header .h-time")?.textContent).toBe("2:05:10 pm");
   });
 });
+
+describe("sensor health overlay wiring (US3)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const ws90Health: LatestSnapshot["sensorHealth"] = {
+    available: true,
+    stale: false,
+    capturedAtUtc: "2026-06-22T20:19:00Z",
+    sensors: [
+      {
+        id: "12FAD",
+        img: "wh90",
+        type: 48,
+        name: "WS90",
+        battery: "OK",
+        batteryRaw: 5,
+        signalBars: 4,
+        rssiDbm: -74,
+        registered: true,
+        lastSeenUtc: "2026-06-22T20:19:00Z",
+      },
+    ],
+  };
+
+  it("mounts a hidden health overlay and reveals it from the header 'Sensors' item", () => {
+    const dashboard = mountDashboard(root);
+    const overlay = root.querySelector<HTMLElement>(".sensor-health-overlay")!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.hidden).toBe(true);
+
+    // Open the menu, choose Sensors → overlay reveals.
+    root.querySelector<HTMLButtonElement>(".hamburger")!.click();
+    const sensors = [...root.querySelectorAll<HTMLElement>(".nav-item")].find(
+      (n) => n.textContent === "Sensors",
+    )!;
+    sensors.click();
+    expect(overlay.hidden).toBe(false);
+    dashboard.stop();
+  });
+
+  it("populates the overlay rows from the snapshot's sensorHealth", () => {
+    const dashboard = mountDashboard(root);
+    const snap = okSnap();
+    snap.sensorHealth = ws90Health;
+    dashboard.update(snap);
+    const overlay = root.querySelector<HTMLElement>(".sensor-health-overlay")!;
+    expect(overlay.querySelectorAll(".sh-row")).toHaveLength(1);
+    expect(
+      overlay.querySelector(".sh-row[data-sensor-id='12FAD'] .batt-badge")?.getAttribute(
+        "data-battery",
+      ),
+    ).toBe("OK");
+    dashboard.stop();
+  });
+});

@@ -10,6 +10,7 @@ import { renderIndoorRings } from "./indoorRings.ts";
 import { renderBarometer } from "./barometer.ts";
 import { renderMissingState, markPanelStale, POLL_CADENCE_SECONDS } from "./freshness.ts";
 import { createHeader } from "./header.ts";
+import { createSensorHealthPage } from "./sensorHealthPage.ts";
 
 /**
  * Render the live panels from a snapshot. With no observed reading every panel
@@ -92,11 +93,16 @@ export interface Dashboard {
 
 /** Mount the three-zone header (with its 1-second clock) and return an updater. */
 export function mountDashboard(root: HTMLElement): Dashboard {
-  const header = createHeader(root.ownerDocument);
+  const health = createSensorHealthPage(root.ownerDocument);
+  const header = createHeader(root.ownerDocument, { onSensors: () => health.toggle() });
   root.prepend(header.element);
+  root.append(health.element);
   const stop = header.start();
   return {
-    update: (snapshot) => renderSnapshot(snapshot, root),
+    update: (snapshot) => {
+      renderSnapshot(snapshot, root);
+      health.update(snapshot.sensorHealth);
+    },
     stop,
   };
 }
