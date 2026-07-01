@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import type { FullMetricMap } from "@ecowitt/shared";
+import type { SensorHealthEntry } from "@ecowitt/shared";
 import { openWriteStore, type WriteStore } from "../src/store.ts";
 
 let dir: string;
@@ -93,5 +94,60 @@ describe("openWriteStore", () => {
         nested: { bad: 1 },
       } as unknown as FullMetricMap),
     ).toThrow();
+  });
+});
+
+function sampleSensors(id = "12FAD"): SensorHealthEntry[] {
+  return [
+    {
+      id,
+      img: "wh90",
+      type: 48,
+      name: "WS90",
+      battery: "OK",
+      batteryRaw: 5,
+      signalBars: 4,
+      rssiDbm: -74,
+      registered: true,
+      lastSeenUtc: "2026-06-30T14:05:00Z",
+    },
+  ];
+}
+
+describe("upsertSensorHealth", () => {
+  it("bootstraps the single-row sensor_health table", () => {
+    const db = new Database(dbPath, { readonly: true });
+    const cols = (db.pragma("table_info(sensor_health)") as Array<{ name: string }>).map(
+      (c) => c.name,
+    );
+    db.close();
+    expect(cols).toEqual(
+      expect.arrayContaining(["id", "captured_at", "sensors_json"]),
+    );
+  });
+
+  it("inserts the single row (id=1) then updates it in place (not a history table)", () => {
+    store.upsertSensorHealth("2026-06-30T14:05:00Z", sampleSensors("12FAD"));
+    store.upsertSensorHealth("2026-06-30T14:10:00Z", sampleSensors("A0"));
+
+    const db = new Database(dbPath, { readonly: true });
+    const rows = db
+      .prepare("SELECT id, captured_at, sensors_json FROM sensor_health")
+      .all() as Array<{ id: number; captured_at: string; sensors_json: string }>;
+    db.close();
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(1);
+    expect(rows[0].captured_at).toBe("2026-06-30T14:10:00Z");
+    const parsed = JSON.parse(rows[0].sensors_json) as SensorHealthEntry[];
+    expect(parsed[0].id).toBe("A0");
+  });
+
+  it("bootstrap is idempotent (reopening the store is safe)", () => {
+    const second = openWriteStore(dbPath);
+    expect(() =>
+      second.upsertSensorHealth("2026-06-30T14:15:00Z", sampleSensors()),
+    ).not.toThrow();
+    second.close();
   });
 });
