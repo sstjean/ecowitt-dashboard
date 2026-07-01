@@ -11,6 +11,37 @@ import { renderBarometer } from "./barometer.ts";
 import { renderMissingState, markPanelStale, POLL_CADENCE_SECONDS } from "./freshness.ts";
 import { createHeader } from "./header.ts";
 import { createSensorHealthPage } from "./sensorHealthPage.ts";
+import { buildSensorIndicator } from "./sensorIndicator.ts";
+import { sensorCardMap } from "../sensorCardMap.ts";
+
+/**
+ * Attach the per-card signal + battery indicator (US2) to each sensor-backed
+ * card via the static {@link sensorCardMap}. All WS90-backed cards resolve to
+ * the single WS90 record; wired wh25 cards get an N/A/no-radio indicator. A
+ * stale/unavailable envelope degrades every indicator to an honest `Unknown`
+ * (never fabricated bars or "0%"). Runs after the panel renderers so the
+ * indicator survives their child replacement.
+ */
+function attachCardIndicators(root: HTMLElement, health: LatestSnapshot["sensorHealth"]): void {
+  const doc = root.ownerDocument;
+  const stale = health.stale || !health.available;
+  for (const binding of sensorCardMap) {
+    const card = root.querySelector<HTMLElement>(`[data-panel="${binding.panel}"]`);
+    if (!card) {
+      continue;
+    }
+    const sensor = stale
+      ? null
+      : health.sensors.find((s) => s.id === binding.sensorId) ?? null;
+    const indicator = buildSensorIndicator(doc, sensor, { radio: binding.radio });
+    const existing = card.querySelector<HTMLElement>(":scope > .sensor-indicator");
+    if (existing) {
+      existing.replaceWith(indicator);
+    } else {
+      card.append(indicator);
+    }
+  }
+}
 
 /**
  * Render the live panels from a snapshot. With no observed reading every panel
@@ -82,6 +113,9 @@ export function renderSnapshot(snapshot: LatestSnapshot, root: HTMLElement): voi
   } else {
     renderMissingState(root);
   }
+  // The per-card sensor indicators (US2) attach last so they survive the panel
+  // renderers' child replacement, in both the reading and missing branches.
+  attachCardIndicators(root, snapshot.sensorHealth);
 }
 
 export interface Dashboard {
