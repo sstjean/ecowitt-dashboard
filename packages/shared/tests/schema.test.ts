@@ -156,6 +156,7 @@ describe("latestSnapshotSchema", () => {
       conditionText: "Sunny",
       rainSensorSuspect: false,
       rainSensorReason: null,
+      sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
     };
     expect(latestSnapshotSchema.parse(env)).toEqual(env);
   });
@@ -178,6 +179,7 @@ describe("latestSnapshotSchema", () => {
       conditionText: null,
       rainSensorSuspect: false,
       rainSensorReason: null,
+      sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
     };
     expect(latestSnapshotSchema.parse(env)).toEqual(env);
   });
@@ -206,6 +208,7 @@ describe("latestSnapshotSchema rain-fault fields", () => {
       conditionIcon: "clear" as const,
       conditionStale: false,
       conditionText: "Sunny",
+      sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
     };
   }
 
@@ -370,6 +373,71 @@ describe("SENSOR_HEALTH_DEFAULTS", () => {
       sensors: [entry],
     };
     expect(health.sensors[0].id).toBe("A0");
+  });
+});
+
+describe("latestSnapshotSchema sensorHealth field", () => {
+  const emptyHealth = {
+    available: false,
+    stale: true,
+    capturedAtUtc: null,
+    sensors: [],
+  };
+
+  function baseEnvelope() {
+    return {
+      status: "ok" as const,
+      observedAt: "2026-06-30T14:05:00Z",
+      serverTime: "2026-06-30T14:05:07Z",
+      reading: validSnapshot(),
+      astro: {
+        sunriseUtc: "2026-06-30T09:25:00Z",
+        sunsetUtc: "2026-07-01T00:31:00Z",
+        sunAltitudeFraction: 0.58,
+        moonPhase: 0.21,
+      },
+      baroTrend: { direction: "rising" as const, deltaHpa: 1.4, etaMinutes: null },
+      conditionIcon: "clear" as const,
+      conditionStale: false,
+      conditionText: "Sunny",
+      rainSensorSuspect: false,
+      rainSensorReason: null,
+    };
+  }
+
+  it("accepts a well-formed envelope carrying sensorHealth", () => {
+    const env = { ...baseEnvelope(), sensorHealth: emptyHealth };
+    expect(latestSnapshotSchema.parse(env)).toEqual(env);
+  });
+
+  it("accepts a populated sensorHealth set", () => {
+    const env = {
+      ...baseEnvelope(),
+      sensorHealth: {
+        available: true,
+        stale: false,
+        capturedAtUtc: "2026-06-30T14:05:00Z",
+        sensors: [
+          {
+            id: "12FAD",
+            img: "wh90",
+            type: 48,
+            name: "WS90",
+            battery: "OK" as const,
+            batteryRaw: 5,
+            signalBars: 4,
+            rssiDbm: -74,
+            registered: true,
+            lastSeenUtc: "2026-06-30T14:05:00Z",
+          },
+        ],
+      },
+    };
+    expect(latestSnapshotSchema.parse(env)).toEqual(env);
+  });
+
+  it("rejects an envelope missing sensorHealth (required field)", () => {
+    expect(() => latestSnapshotSchema.parse(baseEnvelope())).toThrow();
   });
 });
 

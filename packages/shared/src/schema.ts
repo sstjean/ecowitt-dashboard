@@ -202,6 +202,8 @@ export const latestSnapshotSchema = z.strictObject({
   rainSensorSuspect: z.boolean(),
   /** Human-readable summary of the fired proxies when suspect; null otherwise. */
   rainSensorReason: z.union([z.string(), z.null()]),
+  /** Per-sensor battery & signal health (Feature 007), freshness-wrapped. */
+  sensorHealth: sensorHealthSchema,
   serverTime: isoUtc(),
 });
 export type LatestSnapshot = z.infer<typeof latestSnapshotSchema>;

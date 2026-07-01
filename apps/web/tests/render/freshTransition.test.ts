@@ -70,6 +70,7 @@ function noDataSnap(): LatestSnapshot {
     conditionText: null,
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 
@@ -87,6 +88,7 @@ function okSnap(): LatestSnapshot {
     conditionText: "Sunny",
     rainSensorSuspect: false,
     rainSensorReason: null,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   };
 }
 

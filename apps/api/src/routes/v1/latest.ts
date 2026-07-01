@@ -98,6 +98,7 @@ export function buildLatestSnapshot(
       conditionText,
       rainSensorSuspect: false,
       rainSensorReason: null,
+      sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
       serverTime,
     });
   }
@@ -118,6 +119,7 @@ export function buildLatestSnapshot(
     conditionText,
     rainSensorSuspect: rainFault.rainSensorSuspect,
     rainSensorReason: rainFault.rainSensorReason,
+    sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
     serverTime,
   });
 }

@@ -54,6 +54,7 @@ export const latestSnapshot = {
   conditionText: "Partly Sunny",
   rainSensorSuspect: false,
   rainSensorReason: null,
+  sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   serverTime: "2026-06-22T20:19:30Z",
 } as const;
 
@@ -114,5 +115,6 @@ export const noDataSnapshot = {
   conditionText: null,
   rainSensorSuspect: false,
   rainSensorReason: null,
+  sensorHealth: { available: false, stale: true, capturedAtUtc: null, sensors: [] },
   serverTime: "2026-06-22T20:19:30Z",
 } as const;
