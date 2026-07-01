@@ -9,6 +9,8 @@ services:
     volumes:
       - ./test/mock-gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./test/mock-gateway/livedata.json:/usr/share/nginx/html/livedata.json:ro
+      - ./apps/poller/tests/fixtures/sensorsInfo/page1.json:/usr/share/nginx/html/sensors_page_1.json:ro
+      - ./apps/poller/tests/fixtures/sensorsInfo/page2.json:/usr/share/nginx/html/sensors_page_2.json:ro
 
   poller:
     environment:
