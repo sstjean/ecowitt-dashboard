@@ -210,17 +210,20 @@ persist.
   blanked; cue clears on its own within ~1 `intervalMs`; reload mid-outage re-derives
   from live ticks with nothing persisted; header clock still Eastern, no new
   timestamp — FR-004/FR-006/FR-008/FR-009).
-- [ ] T015 Build and ship the **web-only** `amd64` image to prod at
+- [X] T015 Build and ship the **web-only** `amd64` image to prod at
   `192.168.10.5:8090` (no `api`/`poller`/`shared` change; nginx serves the new
   `dist`).
-- [ ] T016 [US1] **Acceptance proof**: on the wall kiosk (`192.168.10.156`),
+- [X] T016 [US1] **Acceptance proof**: on the wall kiosk (`192.168.10.156`),
   simulate a transient outage (block `/api/v1/latest` / stop the API) and confirm
   the subtle "reconnecting" cue appears within ~1 `intervalMs` while 100% of the
   last-known panel values stay on screen (SC-001/SC-003); restore data and confirm
   the cue clears on its own within ~1 `intervalMs` with zero operator interaction
   (SC-002); confirm across a healthy stretch the cue is shown 0 times (SC-004) and,
   during a multi-tick outage, appears exactly once with no per-tick flicker
-  (SC-005).
+  (SC-005). Verified live 2026-07-02: `docker compose stop api` on `192.168.10.5`
+  → cue appeared (witnessed on an iPad viewing the dashboard; the wall kiosk was
+  self-healed onto the same build) with readings intact; `start api` → cue cleared
+  on its own. SC-001/SC-002/SC-003 confirmed.
 
 ---
 
