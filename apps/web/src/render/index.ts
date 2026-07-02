@@ -12,6 +12,7 @@ import { renderMissingState, markPanelStale, POLL_CADENCE_SECONDS } from "./fres
 import { createHeader } from "./header.ts";
 import { createSensorHealthPage } from "./sensorHealthPage.ts";
 import { buildSensorIndicator } from "./sensorIndicator.ts";
+import { createReconnectingCue } from "./reconnecting.ts";
 import { sensorCardMap } from "../sensorCardMap.ts";
 
 /**
@@ -123,12 +124,19 @@ export interface Dashboard {
   update(snapshot: LatestSnapshot): void;
   /** Stop the header clock. */
   stop(): void;
+  /**
+   * Show (`true`) / hide (`false`) the subtle header "reconnecting" cue (013 US1).
+   * Delegates to the header-mounted cue; never touches panel values.
+   */
+  setReconnecting(active: boolean): void;
 }
 
 /** Mount the three-zone header (with its 1-second clock) and return an updater. */
 export function mountDashboard(root: HTMLElement): Dashboard {
   const health = createSensorHealthPage(root.ownerDocument);
   const header = createHeader(root.ownerDocument, { onSensors: () => health.toggle() });
+  const reconnecting = createReconnectingCue(root.ownerDocument);
+  header.element.append(reconnecting.element);
   root.prepend(header.element);
   root.append(health.element);
   const stop = header.start();
@@ -138,5 +146,6 @@ export function mountDashboard(root: HTMLElement): Dashboard {
       health.update(snapshot.sensorHealth);
     },
     stop,
+    setReconnecting: (active) => reconnecting.set(active),
   };
 }

@@ -19,6 +19,7 @@ startPollLoop({
   render: (snapshot) => dashboard.update(snapshot),
   onError: (error) => console.error("snapshot poll failed", error),
   intervalMs: UI_REFRESH_SECONDS * 1000,
+  onReconnectingChange: (active) => dashboard.setReconnecting(active),
 });
 
 // Self-heal on deploy (US1): poll the served /version.json on the same cadence as

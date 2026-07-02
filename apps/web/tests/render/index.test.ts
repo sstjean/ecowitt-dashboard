@@ -171,6 +171,80 @@ describe("mountDashboard", () => {
   });
 });
 
+describe("reconnecting cue seam (013 US1)", () => {
+  it("mounts a hidden cue in the header and exposes setReconnecting (FR-001/FR-007)", () => {
+    // Arrange
+    const dashboard = mountDashboard(root);
+
+    // Act
+    const cue = root.querySelector(".header .reconnecting-cue") as HTMLElement | null;
+
+    // Assert
+    expect(cue).not.toBeNull();
+    expect(cue!.hidden).toBe(true);
+    expect(typeof dashboard.setReconnecting).toBe("function");
+    dashboard.stop();
+  });
+
+  it("setReconnecting(true) shows the cue and (false) hides it (FR-001/FR-002)", () => {
+    // Arrange
+    const dashboard = mountDashboard(root);
+    const cue = root.querySelector(".header .reconnecting-cue") as HTMLElement;
+
+    // Act + Assert
+    dashboard.setReconnecting(true);
+    expect(cue.hidden).toBe(false);
+    dashboard.setReconnecting(false);
+    expect(cue.hidden).toBe(true);
+    dashboard.stop();
+  });
+
+  it("toggling the cue never blanks or corrupts rendered panel values (FR-004/SC-003)", () => {
+    // Arrange
+    const dashboard = mountDashboard(root);
+    dashboard.update(okSnap());
+    const panelBefore = root.querySelector("[data-out-temp]")!.outerHTML;
+
+    // Act
+    dashboard.setReconnecting(true);
+    dashboard.setReconnecting(false);
+
+    // Assert — panel HTML byte-identical across the toggles
+    expect(root.querySelector("[data-out-temp]")!.outerHTML).toBe(panelBefore);
+    dashboard.stop();
+  });
+
+  it("does not interfere with a panel's Fresh/Stale state (G1, edge case)", () => {
+    // Arrange — a stale snapshot marks the outdoor host .stale
+    const dashboard = mountDashboard(root);
+    dashboard.update(okSnap(reading({ observedAt: "2026-06-19T21:00:00Z" })));
+    const outdoor = root.querySelector("[data-ring='outdoor']")!;
+    expect(outdoor.classList.contains("stale")).toBe(true);
+
+    // Act
+    dashboard.setReconnecting(true);
+    dashboard.setReconnecting(false);
+
+    // Assert — stale treatment untouched by the cue
+    expect(outdoor.classList.contains("stale")).toBe(true);
+    dashboard.stop();
+  });
+
+  it("shows the cue in the initial no-data state without altering panel content (G2, edge case)", () => {
+    // Arrange — mounted, no update yet (first-paint failure)
+    const dashboard = mountDashboard(root);
+    const mainBefore = root.querySelector("main")!.innerHTML;
+
+    // Act
+    dashboard.setReconnecting(true);
+
+    // Assert — cue shows; the no-data panel area is unchanged
+    expect((root.querySelector(".header .reconnecting-cue") as HTMLElement).hidden).toBe(false);
+    expect(root.querySelector("main")!.innerHTML).toBe(mainBefore);
+    dashboard.stop();
+  });
+});
+
 describe("sensor health overlay wiring (US3)", () => {
   afterEach(() => {
     vi.useRealTimers();
