@@ -59,6 +59,7 @@ body {
   align-items: center;
   gap: 14px;
   padding: 0 4px;
+  position: relative; /* anchor the absolutely-positioned reconnecting cue (013) */
 }
 .hamburger {
   justify-self: start;
@@ -104,6 +105,43 @@ body {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--cp-text);
+}
+
+/* ---------- Reconnecting cue (013): subtle, out of the header grid flow ---------- */
+.reconnecting-cue {
+  position: absolute;
+  left: 72px; /* just right of the hamburger, in the empty left zone */
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--cp-warning);
+  pointer-events: none;
+}
+/* Explicit: the flex display above would otherwise override the [hidden] default. */
+.reconnecting-cue[hidden] {
+  display: none;
+}
+.rc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cp-warning);
+  animation: rc-pulse 1.8s ease-in-out infinite;
+}
+@keyframes rc-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ---------- Navigation menu (opened by hamburger) ---------- */
