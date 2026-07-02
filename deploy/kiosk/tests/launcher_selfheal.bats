@@ -24,3 +24,18 @@ setup() {
   grep -q -- '--ozone-platform=wayland' "$LAUNCHER"
   grep -q -- '--force-device-scale-factor=1' "$LAUNCHER"
 }
+
+@test "launcher curl-waits for KIOSK_URL reachability before launching Chrome (US3 FR-015/016)" {
+  # A reachability probe must exist...
+  grep -Eq 'curl -fsS' "$LAUNCHER"
+  # ...and it must run BEFORE the first Chrome invocation so a server-down-at-boot
+  # shows a wait rather than a dead error page.
+  curl_line=$(grep -n 'curl -fsS' "$LAUNCHER" | head -1 | cut -d: -f1)
+  chrome_line=$(grep -n 'google-chrome-stable' "$LAUNCHER" | head -1 | cut -d: -f1)
+  [ "$curl_line" -lt "$chrome_line" ]
+}
+
+@test "launcher reachability wait is a bounded until-loop with a sleep (US3 FR-016/017)" {
+  grep -Eq 'until[[:space:]]+curl -fsS' "$LAUNCHER"
+  grep -Eq 'curl -fsS[^|]*--max-time' "$LAUNCHER"
+}

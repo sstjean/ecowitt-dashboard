@@ -17,6 +17,14 @@ FLAGS=(
 if [ "${KIOSK_DEBUG:-0}" = "1" ]; then
   FLAGS+=(--remote-debugging-port=9222 --remote-allow-origins=*)
 fi
+# US3: wait for the dashboard to become reachable before launching Chrome, so a
+# cold boot while the server is still down shows a wait/retry rather than a dead
+# browser error page that cannot recover on its own (FR-015/016). The probe is
+# bounded per-attempt (--max-time) and presents promptly once reachable (FR-017).
+until curl -fsS -o /dev/null --max-time 5 "$URL"; do
+  echo "kiosk-weather: $URL not reachable yet, retrying in 2s" >&2
+  sleep 2
+done
 while true; do
   /usr/bin/google-chrome-stable "${FLAGS[@]}" "$URL"
   echo "kiosk-weather: chrome exited ($?), relaunching in 2s" >&2
