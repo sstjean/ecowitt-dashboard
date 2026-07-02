@@ -226,19 +226,23 @@ proof that a redeploy auto-reloads the kiosk with no manual kick.
 - [X] T024 Run the full `apps/web` gate: `npm run test:coverage` (100%),
   `npm run typecheck` (clean), `npm run test:e2e -- selfheal.spec.ts` (green), and
   `cd deploy/kiosk && bats tests/launcher_selfheal.bats` (green).
-- [ ] T025 Run [quickstart.md](./quickstart.md) validation end-to-end (US1 unit +
+- [X] T025 Run [quickstart.md](./quickstart.md) validation end-to-end (US1 unit +
   build-marker determinism, US2 fake-timer + manual live check, US3 bats).
-- [ ] T026 Build and ship the **web-only** `amd64` image to prod at
+- [X] T026 Build and ship the **web-only** `amd64` image to prod at
   `192.168.10.5:8090` (no `api`/`poller`/`shared` change). `version.json` is served
   by the existing nginx from `dist`.
-- [ ] T027 Perform the **ONE final manual kiosk kick** to onboard the self-heal build
+- [X] T027 Perform the **ONE final manual kiosk kick** to onboard the self-heal build
   onto the wall screen (first-time onboarding per [plan.md](./plan.md) Deployment
   Notes).
-- [ ] T028 **Acceptance proof**: deploy a SUBSEQUENT trivial web redeploy (new build
+- [X] T028 **Acceptance proof**: deploy a SUBSEQUENT trivial web redeploy (new build
   id) and confirm the kiosk auto-reloads to it within one check interval with
-  **no manual kick** (SC-001/SC-006).
-- [ ] T029 [US3] Re-run `deploy/kiosk/provision.sh` on the Surface
-  (`192.168.10.156`) to vendor the hardened launcher — **requires sudo**; verify a
+  **no manual kick** (SC-001/SC-006). Verified in prod 2026-07-02: builds D & E
+  auto-reloaded the kiosk in ~1–4 s with no manual kick (incl. non-debug config).
+- [X] T029 [US3] Vendor the hardened curl-wait launcher on the Surface
+  (`192.168.10.156`) — done via a surgical `install` of `bin/kiosk-weather` to
+  `/usr/local/bin/kiosk-weather` + `systemctl restart kiosk.service` (old launcher
+  backed up to `/root/kiosk-weather.bak.*`), rather than a full `provision.sh`
+  re-run (no repo checkout on device; provisioner also needs the WiFi PSK). Verify a
   server-down-at-boot shows a wait state, not a dead error page (SC-005).
 
 ---
