@@ -1,0 +1,268 @@
+[
+  {
+    "observedAt": "2026-07-06T19:42:17.945Z",
+    "metrics": {
+      "outdoorTempF": 93.9,
+      "dewpointF": 72,
+      "gustMph": 3.13,
+      "outdoorHumidityPct": 49,
+      "pressureHpa": 1013.2078880000001,
+      "solarWm2": 297.08,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T19:45:18.071Z",
+    "metrics": {
+      "outdoorTempF": 94.3,
+      "dewpointF": 71.1,
+      "gustMph": 1.79,
+      "outdoorHumidityPct": 47,
+      "pressureHpa": 1012.8692490000001,
+      "solarWm2": 929.28,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T19:50:18.612Z",
+    "metrics": {
+      "outdoorTempF": 93.6,
+      "dewpointF": 73.9,
+      "gustMph": 7.38,
+      "outdoorHumidityPct": 53,
+      "pressureHpa": 1012.8692490000001,
+      "solarWm2": 933.31,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T19:55:18.534Z",
+    "metrics": {
+      "outdoorTempF": 93.6,
+      "dewpointF": 73.9,
+      "gustMph": 12.75,
+      "outdoorHumidityPct": 53,
+      "pressureHpa": 1013.2078880000001,
+      "solarWm2": 910.34,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:00:18.716Z",
+    "metrics": {
+      "outdoorTempF": 91.6,
+      "dewpointF": 73.2,
+      "gustMph": 7.61,
+      "outdoorHumidityPct": 55,
+      "pressureHpa": 1013.2078880000001,
+      "solarWm2": 217.05,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:05:18.934Z",
+    "metrics": {
+      "outdoorTempF": 90.7,
+      "dewpointF": 73.4,
+      "gustMph": 5.14,
+      "outdoorHumidityPct": 57,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 159.12,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:10:19.182Z",
+    "metrics": {
+      "outdoorTempF": 90.5,
+      "dewpointF": 74.8,
+      "gustMph": 3.58,
+      "outdoorHumidityPct": 60,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 171.98,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:15:19.431Z",
+    "metrics": {
+      "outdoorTempF": 90.1,
+      "dewpointF": 74.5,
+      "gustMph": 4.47,
+      "outdoorHumidityPct": 60,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 175.14,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:20:19.673Z",
+    "metrics": {
+      "outdoorTempF": 90.1,
+      "dewpointF": 74.5,
+      "gustMph": 4.03,
+      "outdoorHumidityPct": 60,
+      "pressureHpa": 1013.2078880000001,
+      "solarWm2": 207.42,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:25:19.845Z",
+    "metrics": {
+      "outdoorTempF": 90.3,
+      "dewpointF": 75.6,
+      "gustMph": 2.46,
+      "outdoorHumidityPct": 62,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 252.09,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:30:20.082Z",
+    "metrics": {
+      "outdoorTempF": 90.7,
+      "dewpointF": 74.5,
+      "gustMph": 4.25,
+      "outdoorHumidityPct": 59,
+      "pressureHpa": 1013.2078880000001,
+      "solarWm2": 778.22,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:35:20.326Z",
+    "metrics": {
+      "outdoorTempF": 91.2,
+      "dewpointF": 73.4,
+      "gustMph": 6.93,
+      "outdoorHumidityPct": 56,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 380.19,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:40:20.540Z",
+    "metrics": {
+      "outdoorTempF": 91.8,
+      "dewpointF": 73.4,
+      "gustMph": 7.61,
+      "outdoorHumidityPct": 55,
+      "pressureHpa": 1013.2078880000001,
+      "solarWm2": 330.86,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:45:20.803Z",
+    "metrics": {
+      "outdoorTempF": 91.2,
+      "dewpointF": 73.9,
+      "gustMph": 4.25,
+      "outdoorHumidityPct": 57,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 127.78,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:50:20.952Z",
+    "metrics": {
+      "outdoorTempF": 90.1,
+      "dewpointF": 73.9,
+      "gustMph": 6.71,
+      "outdoorHumidityPct": 59,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 77.9,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T20:55:21.167Z",
+    "metrics": {
+      "outdoorTempF": 89.6,
+      "dewpointF": 74.5,
+      "gustMph": 4.03,
+      "outdoorHumidityPct": 61,
+      "pressureHpa": 1013.546527,
+      "solarWm2": 52.72,
+      "rainRateInHr": 0,
+      "rainEventIn": 0.81,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T21:00:21.414Z",
+    "metrics": {
+      "outdoorTempF": 87.4,
+      "dewpointF": 74.3,
+      "gustMph": 5.37,
+      "outdoorHumidityPct": 65,
+      "pressureHpa": 1013.885166,
+      "solarWm2": 27.62,
+      "rainRateInHr": 0,
+      "rainEventIn": 0,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T21:05:21.660Z",
+    "metrics": {
+      "outdoorTempF": 83.8,
+      "dewpointF": 73.4,
+      "gustMph": 5.82,
+      "outdoorHumidityPct": 71,
+      "pressureHpa": 1014.223805,
+      "solarWm2": 7.66,
+      "rainRateInHr": 0,
+      "rainEventIn": 0,
+      "rainDailyIn": 0
+    }
+  },
+  {
+    "observedAt": "2026-07-06T21:10:21.872Z",
+    "metrics": {
+      "outdoorTempF": 81.1,
+      "dewpointF": 72.1,
+      "gustMph": 10.96,
+      "outdoorHumidityPct": 74,
+      "pressureHpa": 1014.562444,
+      "solarWm2": 4.18,
+      "rainRateInHr": 0,
+      "rainEventIn": 0,
+      "rainDailyIn": 0
+    }
+  }
+]

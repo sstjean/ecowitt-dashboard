@@ -8,16 +8,19 @@ import {
   nightStormWindow,
   threeProxyWindow,
   calmSaturationWindow,
+  approachingStormWindow,
 } from "./fixtures/rainFault/builders.ts";
 import stormFixture from "./fixtures/rainFault/storm-06-28.json" with { type: "json" };
 import rainFixture from "./fixtures/rainFault/rain-06-27.json" with { type: "json" };
 import dewGateFixture from "./fixtures/rainFault/dew-06-28-gate.json" with { type: "json" };
 import dewCalmFixture from "./fixtures/rainFault/dew-06-28-calm.json" with { type: "json" };
+import leadingEdgeFixture from "./fixtures/rainFault/leading-edge-07-06.json" with { type: "json" };
 
 const storm = stormFixture as StoredReading[];
 const rain = rainFixture as StoredReading[];
 const dewGate = dewGateFixture as StoredReading[];
 const dewCalm = dewCalmFixture as StoredReading[];
+const leadingEdge = leadingEdgeFixture as StoredReading[];
 
 /** The instant of a fixture window's last reading (the window upper bound). */
 function lastNow(window: StoredReading[]): Date {
@@ -70,6 +73,61 @@ describe("detectRainFault — captured real windows (US1)", () => {
       rainSensorSuspect: false,
       rainSensorReason: null,
     });
+  });
+});
+
+describe("detectRainFault — sustained-duration gate (US1, 014)", () => {
+  it("does NOT flag the 07-06 leading edge — the signature only just appeared (C9, SC-001)", () => {
+    // Real capture ending ~17:10 EDT, minutes before the 17:15 rain onset. The
+    // full storm signature has fired (008 would raise TRUE), but 45 min earlier
+    // the temp had not yet crashed → the now-45 sub-window is below quorum, so
+    // the sustained gate suppresses the false positive.
+    const result = detectRainFault(leadingEdge, lastNow(leadingEdge), true);
+    expect(result.rainSensorSuspect).toBe(false);
+    expect(result.rainSensorReason).toBe(null);
+  });
+
+  it("degrades to { false, null } when the earlier sub-window is too short/sparse (C10, FR-013)", () => {
+    // The full window fires the signature, but the slice ending now-45 spans only
+    // ~15 min (< TREND_MIN) with < MIN_READINGS rows, so persistence cannot be
+    // confirmed → no fault raised (graceful degradation, no exception).
+    const window = stormWindow({ spanMin: 60 });
+    expect(detectRainFault(window, windowNow(window), true)).toEqual({
+      rainSensorSuspect: false,
+      rainSensorReason: null,
+    });
+  });
+
+  it("SUSTAIN_MIN governs the sustained sub-window boundary (FR-014)", () => {
+    // A storm concentrated in the last 60 min. Under the default 45-min gate the
+    // now-45 sub-window is still below quorum (storm barely begun) → suppressed;
+    // shrinking SUSTAIN_MIN to 15 catches the established storm → fires. The
+    // verdict tracks the tunable, proving it is not a magic literal.
+    const window = approachingStormWindow(60);
+    const now = windowNow(window);
+    expect(detectRainFault(window, now, true).rainSensorSuspect).toBe(false);
+    const lenient = { ...RAIN_FAULT_DEFAULTS, SUSTAIN_MIN: 15 };
+    expect(detectRainFault(window, now, true, lenient).rainSensorSuspect).toBe(true);
+  });
+
+  it("suppresses a representative approaching-storm sweep; sustained variants still fire (SC-005)", () => {
+    // Leading edge: the full storm signature is present but concentrated in the
+    // last < SUSTAIN_MIN minutes (now-45 sub-window below quorum) → EVERY window
+    // in the population is suppressed, not just the single 07-06 capture.
+    for (const stormMin of [30, 35, 40, 44]) {
+      for (const gust of [10, 16, 22]) {
+        const w = approachingStormWindow(stormMin, { gust });
+        expect(detectRainFault(w, windowNow(w), true)).toEqual({
+          rainSensorSuspect: false,
+          rainSensorReason: null,
+        });
+      }
+    }
+    // Sustained counterpart: the same signature held ≥ SUSTAIN_MIN → each fires.
+    for (const gust of [10, 16, 22]) {
+      const w = approachingStormWindow(75, { gust });
+      expect(detectRainFault(w, windowNow(w), true).rainSensorSuspect).toBe(true);
+    }
   });
 });
 
@@ -205,6 +263,46 @@ describe("detectRainFault — dew & saturation suppression (US2)", () => {
         }
       }
     }
+  });
+});
+
+describe("detectRainFault — sustained real downpour still flags (US2, 014)", () => {
+  it("still flags the sustained 06-28 dead-gauge downpour, with a 'sustained' reason (C8, SC-002)", () => {
+    // The 06-28 signature held with rain flatlined 0.0 for hours, so the now-45
+    // sub-window fires the full signature too → the sustained gate keeps the
+    // true positive, and the reason notes the signature was SUSTAINED (FR-012).
+    const result = detectRainFault(storm, lastNow(storm), true);
+    expect(result.rainSensorSuspect).toBe(true);
+    expect(result.rainSensorReason).toEqual(expect.any(String));
+    expect(result.rainSensorReason!.toLowerCase()).toContain("sustained");
+  });
+
+  it("pins the SUSTAIN_MIN transition: holds at now but not now-45 → false; holds at both → true (C8/C9)", () => {
+    // (a) Storm concentrated in the last 40 min: the signature holds at `now` but
+    //     the now-45 sub-window is in the calm prefix → false.
+    const recent = approachingStormWindow(40);
+    expect(detectRainFault(recent, windowNow(recent), true).rainSensorSuspect).toBe(false);
+    // (b) Same storm sustained across 75 min: signature holds at BOTH → true.
+    const sustained = approachingStormWindow(75);
+    expect(detectRainFault(sustained, windowNow(sustained), true).rainSensorSuspect).toBe(true);
+  });
+
+  it("does not regress any 008 negative under the sustained gate (monotonic tightening, SC-003/SC-004)", () => {
+    // The gate can only turn true→false, so every 008 negative stays negative:
+    // the dew gate path, the calm-saturation quorum path, and the measured-rain
+    // gate path all remain { false, null }.
+    expect(detectRainFault(dewGate, lastNow(dewGate), false)).toEqual({
+      rainSensorSuspect: false,
+      rainSensorReason: null,
+    });
+    expect(detectRainFault(dewCalm, lastNow(dewCalm), false)).toEqual({
+      rainSensorSuspect: false,
+      rainSensorReason: null,
+    });
+    expect(detectRainFault(rain, lastNow(rain), true)).toEqual({
+      rainSensorSuspect: false,
+      rainSensorReason: null,
+    });
   });
 });
 
