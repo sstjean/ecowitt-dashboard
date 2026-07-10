@@ -323,23 +323,24 @@ describe("buildLatestSnapshot condition resolution (read-time, astro-driven)", (
   });
 });
 
-// A 90-min window ending at DAY_NOW (16:00Z = 12:00 EDT) that holds a calm
-// baseline for the first hour then ramps a full storm signature into the final
-// 30 minutes: temp crashes 80→68, humidity surges 60→78, gust 16, pressure dips
-// 1015→1013.7, solar collapses 700→175 (75%), piezo flat at 0 — all 5 proxies +
-// the gate, all within a single 30-min trend span.
+// A 90-min window ending at DAY_NOW (16:00Z = 12:00 EDT) holding a SUSTAINED
+// storm signature — each proxy ramps continuously at its per-30-min rate so any
+// 30-min rolling delta meets the threshold AND the signature is already
+// established at now-45 (satisfying the 014 sustained-duration gate, not just a
+// leading edge): temp crashes at 12°F/30min, humidity surges 18%pts/30min, gust
+// 16, pressure dips 1.3 hPa/30min, solar collapses 75%/30min, piezo flat at 0.
 function seedStormWindow(): void {
   const startMs = Date.parse("2026-06-21T14:30:00.000Z");
   for (let i = 0; i <= 18; i += 1) {
     const minutes = i * 5;
-    const g = Math.max(0, Math.min(1, (minutes - 60) / 30)); // ramp over the last 30 min
+    const spans = minutes / 30; // number of 30-min trend spans elapsed
     seed(new Date(startMs + minutes * 60_000).toISOString(), {
       ...sampleMetrics(),
-      outdoorTempF: 80 - 12 * g,
-      outdoorHumidityPct: 60 + 18 * g,
-      gustMph: 2 + 14 * g,
-      pressureHpa: 1015 - 1.3 * g,
-      solarWm2: 700 - 525 * g,
+      outdoorTempF: 90 - 12 * spans,
+      outdoorHumidityPct: 40 + 18 * spans,
+      gustMph: 16,
+      pressureHpa: 1015 - 1.3 * spans,
+      solarWm2: Math.max(0, 900 * (1 - 0.75 * spans)),
       rainRateInHr: 0,
       rainEventIn: 0,
     });

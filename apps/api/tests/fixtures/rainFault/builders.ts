@@ -1,44 +1,59 @@
 import type { StoredReading } from "../../../src/store.ts";
+import { RAIN_FAULT_DEFAULTS } from "../../../src/rainFault.ts";
+
+/** Rolling-trend span (minutes) the detector measures each drop/rise over. */
+const TREND_MIN = RAIN_FAULT_DEFAULTS.TREND_MIN;
+/**
+ * Default window span (minutes) for the positive builders. Must be
+ * ≥ `SUSTAIN_MIN + TREND_MIN` so the sustained-gate sub-window ending
+ * `now − SUSTAIN_MIN` is itself assessable (spans ≥ `TREND_MIN`) and fires the
+ * same signature — i.e. the positives survive the 014 sustained gate.
+ */
+const DEFAULT_SPAN_MIN = 90;
 
 /**
  * Pure, deterministic fixture builders for the rain-fault detector boundary and
  * edge tests. Every call returns a FRESH `StoredReading[]` (no shared mutable
- * state). Values ramp linearly across the window so each 30-minute rolling delta
- * equals exactly the configured drop/rise (the default span is < `TREND_MIN`, so
- * the whole window is one trend span). All non-firing defaults are zero, so a
- * builder fires only the proxies a test explicitly configures.
+ * state). Each configured drop/rise/collapse is applied as a **per-`TREND_MIN`
+ * (30-min) rate** ramped continuously across the whole span, so ANY 30-min
+ * rolling delta equals exactly the configured value regardless of `spanMin`
+ * (`solarWm2` is clamped at 0). Windows therefore span the sustained
+ * `DEFAULT_SPAN_MIN` by default while every proxy verdict stays identical to a
+ * single 30-min ramp. All non-firing defaults are zero, so a builder fires only
+ * the proxies a test explicitly configures.
  */
 export interface WindowOpts {
   /** Number of readings in the window (default 7). */
   count?: number;
   /**
-   * Total span of the window in minutes (default 30 = TREND_MIN, so the window
-   * is assessable AND the whole linear ramp registers as a single 30-min delta).
+   * Total span of the window in minutes (default `DEFAULT_SPAN_MIN` = 90, so the
+   * `now − SUSTAIN_MIN` sub-window is assessable). Each configured delta is a
+   * per-`TREND_MIN` rate, so the span does not change any 30-min rolling delta.
    */
   spanMin?: number;
   /** ISO start instant of the first reading (default 2026-06-28T21:00:00Z). */
   startIso?: string;
   /** Outdoor temperature at the first reading (default 70). */
   tempStart?: number;
-  /** Total temperature drop across the window (°F, default 0). */
+  /** Temperature drop per `TREND_MIN` span (°F, default 0). */
   tempDrop?: number;
   /** Outdoor humidity at the first reading (default 50). */
   humStart?: number;
-  /** Total humidity rise across the window (%pts, default 0). */
+  /** Humidity rise per `TREND_MIN` span (%pts, default 0). */
   humSurge?: number;
   /** Pressure at the first reading (hPa, default 1015). */
   pressStart?: number;
-  /** Total pressure drop across the window (hPa, default 0). */
+  /** Pressure drop per `TREND_MIN` span (hPa, default 0). */
   pressDip?: number;
   /** Constant wind gust — becomes the window max (mph, default 0). */
   gust?: number;
   /** Solar radiation peak at the first reading (W/m², default 0 ⇒ no solar). */
   solarPeak?: number;
-  /** Fractional solar collapse from the peak across the window (default 0). */
+  /** Fractional solar collapse from the peak per `TREND_MIN` span (default 0). */
   solarFrac?: number;
   /** Constant piezo rain rate (in/hr, default 0). */
   rateMax?: number;
-  /** Total piezo event accumulation rise across the window (in, default 0). */
+  /** Piezo event accumulation rise per `TREND_MIN` span (in, default 0). */
   eventRise?: number;
   /** Residual Ambient tipping-bucket ghost value — must be ignored (default 0.42). */
   ghost?: number;
@@ -46,11 +61,11 @@ export interface WindowOpts {
 
 const DEFAULT_START = "2026-06-28T21:00:00.000Z";
 
-/** Build a fresh window with linear ramps; each call is independent. */
+/** Build a fresh window with per-TREND_MIN linear ramps; each call is independent. */
 export function buildReadings(opts: WindowOpts = {}): StoredReading[] {
   const {
     count = 7,
-    spanMin = 30,
+    spanMin = DEFAULT_SPAN_MIN,
     startIso = DEFAULT_START,
     tempStart = 70,
     tempDrop = 0,
@@ -69,19 +84,23 @@ export function buildReadings(opts: WindowOpts = {}): StoredReading[] {
   const out: StoredReading[] = [];
   for (let i = 0; i < count; i += 1) {
     const f = count === 1 ? 0 : i / (count - 1);
-    const tMs = startMs + f * spanMin * 60_000;
+    const elapsedMin = f * spanMin;
+    // Number of TREND_MIN spans elapsed — each configured delta is a rate over
+    // this span, so any 30-min rolling delta equals the configured value.
+    const spans = elapsedMin / TREND_MIN;
+    const tMs = startMs + elapsedMin * 60_000;
     out.push({
       observedAt: new Date(tMs).toISOString(),
       metrics: {
-        outdoorTempF: tempStart - tempDrop * f,
-        dewpointF: tempStart - tempDrop * f - 2,
-        outdoorHumidityPct: humStart + humSurge * f,
+        outdoorTempF: tempStart - tempDrop * spans,
+        dewpointF: tempStart - tempDrop * spans - 2,
+        outdoorHumidityPct: humStart + humSurge * spans,
         gustMph: gust,
-        pressureHpa: pressStart - pressDip * f,
-        solarWm2: solarPeak * (1 - solarFrac * f),
+        pressureHpa: pressStart - pressDip * spans,
+        solarWm2: Math.max(0, solarPeak * (1 - solarFrac * spans)),
         rainRateInHr: rateMax,
-        rainEventIn: eventRise * f,
-        rainDailyIn: eventRise * f,
+        rainEventIn: eventRise * spans,
+        rainDailyIn: eventRise * spans,
         rain_0x0D: ghost,
       },
     });
@@ -160,4 +179,51 @@ export function calmSaturationWindow(overrides: WindowOpts = {}): StoredReading[
     eventRise: 0,
     ...overrides,
   });
+}
+
+/** Fixed `now` anchor for the approaching-storm windows (daytime). */
+const APPROACH_NOW = "2026-07-06T21:00:00.000Z";
+/** Total rolling-window span (minutes) of an approaching-storm window. */
+const APPROACH_TOTAL_MIN = 90;
+
+/**
+ * A leading-edge window: flat pre-storm calm for the earlier part, then the full
+ * storm signature (temp crash + humidity surge + gust spike + pressure dip +
+ * daytime solar collapse, dead piezo) ramping in over ONLY the last `stormMin`
+ * minutes ending at `now`. When `stormMin < SUSTAIN_MIN` the `now − SUSTAIN_MIN`
+ * sub-window lands in the calm prefix (below quorum) so the sustained gate
+ * suppresses the false positive; when `stormMin ≥ SUSTAIN_MIN` the sub-window
+ * catches the established storm and it fires. `overrides` tune the storm segment.
+ */
+export function approachingStormWindow(
+  stormMin: number,
+  overrides: WindowOpts = {},
+): StoredReading[] {
+  const nowMs = Date.parse(APPROACH_NOW);
+  const startIso = new Date(nowMs - APPROACH_TOTAL_MIN * 60_000).toISOString();
+  const stormStartIso = new Date(nowMs - stormMin * 60_000).toISOString();
+  const calm = buildReadings({
+    spanMin: APPROACH_TOTAL_MIN - stormMin,
+    startIso,
+    tempStart: 90,
+    humStart: 50,
+    pressStart: 1015,
+    solarPeak: 900,
+    gust: 3,
+  });
+  const surge = buildReadings({
+    spanMin: stormMin,
+    startIso: stormStartIso,
+    tempStart: 90,
+    tempDrop: 12,
+    humStart: 50,
+    humSurge: 18,
+    pressStart: 1015,
+    pressDip: 1.3,
+    solarPeak: 900,
+    solarFrac: 0.75,
+    gust: 16,
+    ...overrides,
+  });
+  return [...calm, ...surge];
 }

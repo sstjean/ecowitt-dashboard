@@ -29,6 +29,13 @@ export interface RainFaultThresholds {
   MIN_READINGS: number;
   /** Quorum: the number of the 5 proxies that must concur for a fault. */
   MIN_PROXIES: number;
+  /**
+   * Sustained gate (minutes): the storm signature (piezo gate + proxy quorum)
+   * must ALSO hold over the sub-window ending this many minutes before `now`,
+   * so a storm's leading edge (signature only just appeared) is suppressed while
+   * a sustained dead-gauge downpour still fires (014, FR-014 — see research.md).
+   */
+  SUSTAIN_MIN: number;
 }
 
 /** Empirically derived defaults (see specs/008 research.md / data-model.md). */
@@ -44,6 +51,7 @@ export const RAIN_FAULT_DEFAULTS: RainFaultThresholds = {
   TREND_MIN: 30,
   MIN_READINGS: 4,
   MIN_PROXIES: 4,
+  SUSTAIN_MIN: 45,
 };
 
 const NOT_SUSPECT: RainFaultState = { rainSensorSuspect: false, rainSensorReason: null };
@@ -169,6 +177,35 @@ function buildReason(fired: Array<[string, boolean]>): string {
 }
 
 /**
+ * Evaluate the storm signature over `samples` whose upper bound is `end` (epoch
+ * ms). Returns the fired-proxy list when the sub-window is assessable
+ * (≥ `MIN_READINGS` rows AND spans ≥ `TREND_MIN` minutes) AND the piezo gate
+ * holds AND ≥ `MIN_PROXIES` of the 5 proxies concur; otherwise `null` (not
+ * assessable / gate fails / quorum not met). Pure — `samples` must already be
+ * filtered to `t ≤ end`. Composed twice by `detectRainFault` (full window at
+ * `now` + earlier sub-window at `now − SUSTAIN_MIN`) with no duplicated logic.
+ */
+function signatureFired(
+  samples: Sample[],
+  end: number,
+  isDay: boolean,
+  th: RainFaultThresholds,
+): Array<[string, boolean]> | null {
+  if (samples.length < th.MIN_READINGS) return null;
+  if ((end - samples[0]!.t) / 60_000 < th.TREND_MIN) return null;
+  if (!piezoNearZero(samples, th)) return null;
+  const fired: Array<[string, boolean]> = [
+    ["temperature crash", tempCrash(samples, th)],
+    ["humidity surge", humiditySurge(samples, th)],
+    ["gust spike", gustSpike(samples, th)],
+    ["pressure dip", pressureDip(samples, th)],
+    ["solar collapse", solarCollapse(samples, isDay, th)],
+  ];
+  if (fired.filter(([, on]) => on).length < th.MIN_PROXIES) return null;
+  return fired;
+}
+
+/**
  * Detect a suspected rain-gauge "not measuring" fault over a rolling window.
  *
  * A fault is raised only when the piezo **gate** holds (the WS90 rain channel is
@@ -184,25 +221,27 @@ export function detectRainFault(
   isDay: boolean,
   thresholds: RainFaultThresholds = RAIN_FAULT_DEFAULTS,
 ): RainFaultState {
-  const samples = parseWindow(readings).filter((s) => s.t <= now.getTime());
-  if (samples.length < thresholds.MIN_READINGS) return NOT_SUSPECT;
-  const spanMin = (now.getTime() - samples[0]!.t) / 60_000;
-  if (spanMin < thresholds.TREND_MIN) return NOT_SUSPECT;
+  const all = parseWindow(readings).filter((s) => s.t <= now.getTime());
 
-  if (!piezoNearZero(samples, thresholds)) return NOT_SUSPECT;
+  const nowFired = signatureFired(all, now.getTime(), isDay, thresholds);
+  if (nowFired === null) return NOT_SUSPECT;
 
-  const fired: Array<[string, boolean]> = [
-    ["temperature crash", tempCrash(samples, thresholds)],
-    ["humidity surge", humiditySurge(samples, thresholds)],
-    ["gust spike", gustSpike(samples, thresholds)],
-    ["pressure dip", pressureDip(samples, thresholds)],
-    ["solar collapse", solarCollapse(samples, isDay, thresholds)],
-  ];
-  const concurring = fired.filter(([, on]) => on).length;
-  if (concurring < thresholds.MIN_PROXIES) return NOT_SUSPECT;
+  // Sustained-duration gate (014): the same signature must ALSO have held over
+  // the sub-window ending SUSTAIN_MIN minutes earlier. On a storm's leading edge
+  // the signature had not yet appeared 45 min ago, so this suppresses the false
+  // positive; a genuinely dead gauge in a sustained downpour still fires because
+  // the signature was already established 45 min ago with rain still zero.
+  const earlierEnd = now.getTime() - thresholds.SUSTAIN_MIN * 60_000;
+  const earlierFired = signatureFired(
+    all.filter((s) => s.t <= earlierEnd),
+    earlierEnd,
+    isDay,
+    thresholds,
+  );
+  if (earlierFired === null) return NOT_SUSPECT;
 
   return {
     rainSensorSuspect: true,
-    rainSensorReason: `Storm signature with no rain measured (${buildReason(fired)})`,
+    rainSensorReason: `Storm signature sustained with no rain measured (${buildReason(nowFired)})`,
   };
 }
