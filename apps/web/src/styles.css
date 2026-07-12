@@ -519,9 +519,11 @@ body {
   font-size: 0.5em;
 }
 .ring-center .hl {
-  font-size: 13px;
+  font-size: clamp(17px, 1.7vw, 23px);
+  font-weight: 600;
   color: var(--cp-text-soft);
-  margin-top: 6px;
+  margin-top: 8px;
+  white-space: nowrap;
 }
 .ring-center .hl .up {
   color: var(--cp-warning);
@@ -722,7 +724,7 @@ body {
   margin-top: 2px;
 }
 .rain-rate {
-  font-size: 12px;
+  font-size: clamp(16px, 1.5vw, 21px);
   color: var(--cp-text-soft);
   margin-top: 4px;
 }
@@ -881,7 +883,7 @@ body {
   gap: 8px;
 }
 .baro-arrow {
-  font-size: 20px;
+  font-size: clamp(24px, 2vw, 30px);
   font-weight: 700;
   line-height: 1;
 }
@@ -910,7 +912,7 @@ body {
   text-transform: none;
 }
 .bdelta {
-  font-size: 13px;
+  font-size: clamp(16px, 1.5vw, 21px);
   color: var(--cp-text-muted);
   text-align: center;
 }
@@ -1035,7 +1037,7 @@ body {
     font-size: clamp(64px, 4.6vw, 96px);
   }
   .ring-center .hl {
-    font-size: 24px;
+    font-size: clamp(34px, 2.4vw, 44px);
   }
   .metric .m-val {
     font-size: 34px;
@@ -1066,7 +1068,7 @@ body {
     font-size: 17px;
   }
   .rain-rate {
-    font-size: 17px;
+    font-size: clamp(24px, 1.8vw, 32px);
   }
   .rain-grid .rr {
     font-size: 21px;
@@ -1122,11 +1124,13 @@ body {
     padding-left: 56px;
   }
   .baro-arrow {
-    font-size: 38px;
+    font-size: 48px;
   }
-  .baro .bcaption,
-  .bdelta {
+  .baro .bcaption {
     font-size: 24px;
+  }
+  .bdelta {
+    font-size: 32px;
   }
   .cond-glyph {
     font-size: clamp(156px, 8vw, 196px);
