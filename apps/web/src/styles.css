@@ -536,14 +536,16 @@ body {
   display: flex;
   align-items: stretch;
   gap: 10px;
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  padding-bottom: 4px;
   border-top: 1px solid var(--cp-border);
 }
 .mgroup {
   flex: 1;
   display: flex;
   justify-content: space-around;
+  align-items: center;
   gap: 6px;
 }
 .out-metrics .divider {
@@ -554,11 +556,11 @@ body {
   text-align: center;
 }
 .metric .m-val {
-  font-size: 18px;
+  font-size: 21px;
   font-weight: 600;
 }
 .metric .m-lbl {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--cp-text-muted);
@@ -1040,10 +1042,21 @@ body {
     font-size: clamp(34px, 2.4vw, 44px);
   }
   .metric .m-val {
-    font-size: 34px;
+    font-size: 42px;
   }
   .metric .m-lbl {
-    font-size: 18px;
+    font-size: 24px;
+  }
+  /* Option 3: fixed-height band below the rings so the enlarged Dewpoint/
+     Humidity/wind stats sit in a taller, vertically-centred row. The rings are
+     clamped at 440px inside a flex:1 band with ~140px of slack, so this taller
+     row consumes dead space without shrinking the rings; the ring→line gap is
+     preserved via the raised margin-top. */
+  .out-metrics {
+    min-height: 108px;
+    margin-top: 18px;
+    padding-top: 16px;
+    padding-bottom: 10px;
   }
   .wind-center .ws {
     font-size: clamp(56px, 4.4vw, 76px);
